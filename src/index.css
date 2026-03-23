@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Assistant", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Assistant", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: #681A71;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #908D53;
+  --color-accent: #A3331E;
+  --color-success: #EEBF3A;
+  --color-surface: #FFFFFF;
+  --color-background: #F9F9F7;
+  --color-divider: #E0E3DB;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-zinc-900 font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}

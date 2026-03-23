@@ -1,0 +1,5 @@
+{
+  "name": "מרקטפלייס פרו",
+  "description": "זירת מסחר דו-צדדית לפריטי בית, וינטג' ואספנות.",
+  "requestFramePermissions": ["camera"]
+}
