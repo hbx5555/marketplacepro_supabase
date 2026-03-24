@@ -748,7 +748,7 @@ function MarketplaceApp() {
                 <Store className="text-zinc-900 w-10 h-10" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">קניה ומכירה בקלות</p>
+              <p className="text-white/90 text-xl font-medium mb-12">קניה ומכירה לכולם</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
