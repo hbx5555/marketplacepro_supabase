@@ -298,6 +298,9 @@ function MarketplaceApp() {
   const [offerAmount, setOfferAmount] = useState('');
   const [offerSuccessModalOpen, setOfferSuccessModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -579,8 +582,26 @@ function MarketplaceApp() {
     }
   };
 
+  const fetchBuyerOffers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('item_id')
+        .eq('buyer_id', currentUser.id);
+
+      if (error) throw error;
+      if (data) {
+        const itemIds = new Set(data.map((offer: any) => offer.item_id));
+        setBuyerOffers(itemIds);
+      }
+    } catch (error) {
+      console.error('Error fetching buyer offers:', error);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchBuyerOffers();
 
     const subscription = supabase
       .channel('items_changes')
@@ -716,6 +737,7 @@ function MarketplaceApp() {
       if (error) throw error;
       setOfferModalOpen(false);
       setOfferSuccessModalOpen(true);
+      fetchBuyerOffers();
     } catch (error) {
       handleDatabaseError(error, OperationType.CREATE, 'offers');
     }
@@ -815,7 +837,6 @@ function MarketplaceApp() {
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-extrabold text-zinc-900">מרקטפלייס</h1>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-zinc-100 rounded-full"><Search className="w-6 h-6" /></button>
                   <button className="p-2 hover:bg-zinc-100 rounded-full"><Bell className="w-6 h-6" /></button>
                 </div>
               </div>
@@ -840,7 +861,11 @@ function MarketplaceApp() {
 
             {/* Feed */}
             <main className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 pb-24">
-              {items.filter(i => i.status === 'active' && (!selectedCategoryFilter || i.category === selectedCategoryFilter)).map(item => (
+              {items.filter(i => 
+                i.status === 'active' && 
+                (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
+                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).map(item => (
                 <Card 
                   key={item.id}
                   className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
@@ -849,7 +874,12 @@ function MarketplaceApp() {
                   <div className="relative aspect-square">
                     <img src={item.photoURL} alt={item.title} className="w-full h-full object-cover" />
                     <button className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm">
-                      <Heart className="w-4 h-4 text-zinc-900" />
+                      <Heart 
+                        className={cn(
+                          "w-4 h-4 text-zinc-900",
+                          buyerOffers.has(item.id) && "fill-current"
+                        )} 
+                      />
                     </button>
                   </div>
                   <div className="p-3 space-y-1">
@@ -858,7 +888,11 @@ function MarketplaceApp() {
                   </div>
                 </Card>
               ))}
-              {items.filter(i => i.status === 'active' && (!selectedCategoryFilter || i.category === selectedCategoryFilter)).length === 0 && (
+              {items.filter(i => 
+                i.status === 'active' && 
+                (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
+                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).length === 0 && (
                 <div className="col-span-2 flex flex-col items-center justify-center py-20 text-zinc-400">
                   <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
                   <p className="font-medium">אין פריטים זמינים עדיין</p>
@@ -869,13 +903,19 @@ function MarketplaceApp() {
             {/* Nav */}
             <nav className="fixed bottom-0 start-0 end-0 max-w-md mx-auto bg-white border-t border-divider p-4 flex justify-around items-center z-30">
               <button 
-                onClick={() => setSelectedCategoryFilter(null)}
+                onClick={() => {
+                  setSelectedCategoryFilter(null);
+                  setSearchTerm('');
+                }}
                 className="flex flex-col items-center gap-1 text-primary"
               >
                 <Home className="w-7 h-7" />
                 <span className="text-[10px] font-bold">ראשי</span>
               </button>
-              <button className="flex flex-col items-center gap-1 text-zinc-400">
+              <button 
+                onClick={() => setSearchModalOpen(true)}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
                 <Search className="w-7 h-7" />
                 <span className="text-[10px] font-bold">חיפוש</span>
               </button>
@@ -884,7 +924,7 @@ function MarketplaceApp() {
                 <span className="text-[10px] font-bold">הודעות</span>
               </button>
               <button 
-                onClick={() => setView('entrance')}
+                onClick={() => setView('settings')}
                 className="flex flex-col items-center gap-1 text-zinc-400"
               >
                 <UserIcon className="w-7 h-7" />
@@ -906,7 +946,7 @@ function MarketplaceApp() {
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full"><ArrowRight className="w-6 h-6" /></button>
                 <h1 className="text-xl font-bold text-zinc-900">הפריטים שלי</h1>
-                <button onClick={() => setView('settings')} className="p-2 hover:bg-zinc-100 rounded-full"><Settings className="w-6 h-6" /></button>
+                <div className="w-10"></div>
               </div>
               
               <div className="flex items-center gap-4 mb-6">
@@ -943,7 +983,10 @@ function MarketplaceApp() {
 
             <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
               <h3 className="text-lg font-bold mb-4">מודעות פעילות</h3>
-              {items.filter(i => i.sellerId === currentUser.id).map(item => (
+              {items.filter(i => 
+                i.sellerId === currentUser.id &&
+                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).map(item => (
                 <div key={item.id}>
                   <Card 
                     className="p-3 cursor-pointer active:scale-[0.99] transition-transform relative"
@@ -1004,7 +1047,10 @@ function MarketplaceApp() {
                   </Card>
                 </div>
               ))}
-              {items.filter(i => i.sellerId === currentUser.id).length === 0 && (
+              {items.filter(i => 
+                i.sellerId === currentUser.id &&
+                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+              ).length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
                   <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
                   <p className="font-medium">אין פריטים עדיין</p>
@@ -1020,10 +1066,39 @@ function MarketplaceApp() {
                 setSelectedCondition('כמו חדש');
                 setView('add-item');
               }}
-              className="fixed bottom-8 end-8 w-14 h-14 bg-success rounded-full flex items-center justify-center text-zinc-900 shadow-xl active:scale-95 transition-transform z-30"
+              className="fixed bottom-24 end-8 w-14 h-14 bg-success rounded-full flex items-center justify-center text-zinc-900 shadow-xl active:scale-95 transition-transform z-30"
             >
               <Plus className="w-8 h-8" />
             </button>
+
+            {/* Nav */}
+            <nav className="fixed bottom-0 start-0 end-0 max-w-md mx-auto bg-white border-t border-divider p-4 flex justify-around items-center z-30">
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="flex flex-col items-center gap-1 text-primary"
+              >
+                <Home className="w-7 h-7" />
+                <span className="text-[10px] font-bold">ראשי</span>
+              </button>
+              <button 
+                onClick={() => setSearchModalOpen(true)}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <Search className="w-7 h-7" />
+                <span className="text-[10px] font-bold">חיפוש</span>
+              </button>
+              <button className="flex flex-col items-center gap-1 text-zinc-400">
+                <MessageCircle className="w-7 h-7" />
+                <span className="text-[10px] font-bold">הודעות</span>
+              </button>
+              <button 
+                onClick={() => setView('settings')}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <UserIcon className="w-7 h-7" />
+                <span className="text-[10px] font-bold">פרופיל</span>
+              </button>
+            </nav>
           </motion.div>
         )}
 
@@ -1048,7 +1123,34 @@ function MarketplaceApp() {
                 <ArrowRight className="w-5 h-5" />
               </button>
               <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
-              <button className="p-2 hover:bg-zinc-100 rounded-full"><MoreVertical className="w-5 h-5" /></button>
+              {editingItem ? (
+                <div className="relative">
+                  <button 
+                    className="p-2 hover:bg-zinc-100 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === editingItem.id ? null : editingItem.id);
+                    }}
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                  {openMenuId === editingItem.id && (
+                    <div className="absolute end-0 top-10 bg-white shadow-lg rounded-lg border border-zinc-100 py-1 z-10 w-32">
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleDeleteItem(editingItem.id); 
+                        }} 
+                        className="w-full text-start px-4 py-2 text-sm text-red-500 hover:bg-zinc-50 font-medium"
+                      >
+                        מחק
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-10"></div>
+              )}
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 space-y-6 pb-32">
@@ -1235,40 +1337,89 @@ function MarketplaceApp() {
                   {publishError}
                 </div>
               )}
-              <Button 
-                variant="success" 
-                fullWidth 
-                size="lg"
-                disabled={isPublishing || isCompressing}
-                onClick={() => {
-                  const title = (document.getElementById('item-title') as HTMLInputElement).value;
-                  const price = parseFloat((document.getElementById('item-price') as HTMLInputElement).value);
-                  const category = (document.getElementById('item-category') as HTMLSelectElement).value;
-                  const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
-                  const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
-                  
-                  // Capture the current previewImages to avoid any closure issues
-                  const currentPhotoURLs = previewImages;
-                  
-                  if (title && !isNaN(price)) {
-                    handleSaveItem({
-                      title,
-                      price,
-                      category,
-                      description,
-                      specifications,
-                      condition: selectedCondition,
-                      photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
-                      photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
-                    });
-                  } else {
-                    setPublishError('אנא הזן כותרת ומחיר תקין.');
-                  }
-                }}
-              >
-                {isPublishing ? (editingItem ? 'מעדכן...' : 'מפרסם...') : isCompressing ? 'דוחס תמונה...' : (editingItem ? 'עדכן פריט' : 'פרסם פריט')}
-              </Button>
-              <button className="w-full text-zinc-400 font-medium text-sm py-3" disabled={isPublishing}>שמור כטיוטה</button>
+              {editingItem ? (
+                <div className="flex gap-4">
+                  <Button 
+                    variant="success" 
+                    fullWidth 
+                    size="lg"
+                    disabled={isPublishing || isCompressing}
+                    onClick={() => {
+                      const title = (document.getElementById('item-title') as HTMLInputElement).value;
+                      const price = parseFloat((document.getElementById('item-price') as HTMLInputElement).value);
+                      const category = (document.getElementById('item-category') as HTMLSelectElement).value;
+                      const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
+                      const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
+                      
+                      const currentPhotoURLs = previewImages;
+                      
+                      if (title && !isNaN(price)) {
+                        handleSaveItem({
+                          title,
+                          price,
+                          category,
+                          description,
+                          specifications,
+                          condition: selectedCondition,
+                          photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
+                          photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
+                        });
+                      } else {
+                        setPublishError('אנא הזן כותרת ומחיר תקין.');
+                      }
+                    }}
+                  >
+                    {isPublishing ? 'מעדכן...' : isCompressing ? 'דוחס תמונה...' : 'עדכן פריט'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    size="lg"
+                    disabled={isPublishing}
+                    onClick={() => {
+                      setEditingItem(null);
+                      setPreviewImages([]);
+                      setOriginalImages([]);
+                      setView(userMode === 'seller' ? 'seller' : 'buyer');
+                    }}
+                  >
+                    ביטול
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="success" 
+                  fullWidth 
+                  size="lg"
+                  disabled={isPublishing || isCompressing}
+                  onClick={() => {
+                    const title = (document.getElementById('item-title') as HTMLInputElement).value;
+                    const price = parseFloat((document.getElementById('item-price') as HTMLInputElement).value);
+                    const category = (document.getElementById('item-category') as HTMLSelectElement).value;
+                    const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
+                    const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
+                    
+                    const currentPhotoURLs = previewImages;
+                    
+                    if (title && !isNaN(price)) {
+                      handleSaveItem({
+                        title,
+                        price,
+                        category,
+                        description,
+                        specifications,
+                        condition: selectedCondition,
+                        photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
+                        photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
+                      });
+                    } else {
+                      setPublishError('אנא הזן כותרת ומחיר תקין.');
+                    }
+                  }}
+                >
+                  {isPublishing ? 'מפרסם...' : isCompressing ? 'דוחס תמונה...' : 'פרסם פריט'}
+                </Button>
+              )}
             </footer>
           </motion.div>
         )}
@@ -1286,7 +1437,6 @@ function MarketplaceApp() {
               <h1 className="text-md font-bold">פרטי פריט</h1>
               <div className="flex items-center gap-1">
                 <button className="p-2 hover:bg-zinc-100 rounded-full"><Share2 className="w-5 h-5" /></button>
-                <button className="p-2 hover:bg-zinc-100 rounded-full"><MoreVertical className="w-5 h-5" /></button>
               </div>
             </header>
 
@@ -1302,7 +1452,12 @@ function MarketplaceApp() {
                   <img src={selectedItem.photoURL} alt={selectedItem.title} className="w-full h-full object-cover" />
                 )}
                 <button className="absolute top-4 end-4 w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-sm">
-                  <Heart className="w-6 h-6" />
+                  <Heart 
+                    className={cn(
+                      "w-6 h-6",
+                      buyerOffers.has(selectedItem.id) && "fill-current"
+                    )} 
+                  />
                 </button>
               </div>
 
@@ -1356,13 +1511,15 @@ function MarketplaceApp() {
                 <Card className="p-4 bg-zinc-50 border-divider">
                   <div className="flex justify-around items-center">
                     <div className="flex items-center gap-1 text-xs font-bold text-zinc-500">
-                      <Heart className="w-4 h-4" /> 24 לייקים
+                      <Heart 
+                        className={cn(
+                          "w-4 h-4",
+                          buyerOffers.has(selectedItem.id) && "fill-current"
+                        )} 
+                      /> הצעה
                     </div>
                     <div className="flex items-center gap-1 text-xs font-bold text-zinc-500">
-                      <MessageCircle className="w-4 h-4" /> 8 תגובות
-                    </div>
-                    <div className="flex items-center gap-1 text-xs font-bold text-zinc-500">
-                      <Eye className="w-4 h-4" /> 156 צפיות
+                      <Eye className="w-4 h-4" /> צפיות
                     </div>
                   </div>
                 </Card>
@@ -1381,8 +1538,13 @@ function MarketplaceApp() {
               >
                 אני מעוניין
               </Button>
-              <Button variant="outline" fullWidth size="lg">
-                <MessageCircle className="w-5 h-5" /> צור קשר
+              <Button 
+                variant="outline" 
+                fullWidth 
+                size="lg"
+                onClick={() => setView('buyer')}
+              >
+                חזור
               </Button>
             </footer>
           </motion.div>
@@ -1419,11 +1581,17 @@ function MarketplaceApp() {
               >
                 מדריך <ChevronLeft className="w-5 h-5 text-zinc-400" />
               </button>
-              <div className="pt-8">
+              <div className="pt-8 space-y-4">
+                <Button 
+                  variant="success" 
+                  fullWidth 
+                  onClick={() => setView('entrance')}
+                >
+                  מסך כניסה
+                </Button>
                 <Button 
                   variant="outline" 
                   fullWidth 
-                  onClick={() => setView('entrance')}
                   className="text-accent border-accent/20 hover:bg-accent/5"
                 >
                   התנתק
@@ -1574,6 +1742,46 @@ function MarketplaceApp() {
             <Button variant="success" fullWidth onClick={() => setOfferSuccessModalOpen(false)}>
               אישור
             </Button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Search Modal */}
+      {searchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+          >
+            <h2 className="text-xl font-bold mb-4">חיפוש פריטים</h2>
+            <input 
+              type="text" 
+              placeholder="חפש לפי שם פריט..."
+              className="w-full bg-zinc-50 border border-divider rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                fullWidth 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSearchModalOpen(false);
+                }}
+              >
+                ביטול
+              </Button>
+              <Button 
+                variant="success" 
+                fullWidth 
+                onClick={() => setSearchModalOpen(false)}
+              >
+                חפש
+              </Button>
+            </div>
           </motion.div>
         </div>
       )}
