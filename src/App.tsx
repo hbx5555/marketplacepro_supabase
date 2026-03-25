@@ -745,7 +745,7 @@ function MarketplaceApp() {
 
             <div className="relative z-10 flex-1 flex flex-col items-center pt-20 px-8 h-full">
               <div className="w-20 h-20 bg-success rounded-3xl flex items-center justify-center shadow-xl mb-6">
-                <Store className="text-zinc-900 w-10 h-10" />
+                <img src="/new_svg_trash_icon.svg" alt="TrashMarket" className="w-10 h-10" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/90 text-xl font-medium mb-12">קניה ומכירה לכולם</p>
