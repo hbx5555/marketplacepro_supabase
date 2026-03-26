@@ -3,18 +3,18 @@
   "name": "Marketplace Pro",
   "icons": [
     {
-      "src": "/icon.svg",
-      "type": "image/svg+xml",
+      "src": "/new_icon.png",
+      "type": "image/png",
       "sizes": "any"
     },
     {
-      "src": "/icon.svg",
-      "type": "image/svg+xml",
+      "src": "/new_icon.png",
+      "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icon.svg",
-      "type": "image/svg+xml",
+      "src": "/new_icon.png",
+      "type": "image/png",
       "sizes": "512x512"
     }
   ],
