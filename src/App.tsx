@@ -1502,19 +1502,6 @@ function MarketplaceApp() {
               ) : (
                 <div className="flex gap-3">
                   <Button 
-                    variant="outline" 
-                    fullWidth 
-                    size="lg"
-                    onClick={() => {
-                      setEditingItem(null);
-                      setPreviewImages([]);
-                      setOriginalImages([]);
-                      setView(userMode === 'seller' ? 'seller' : 'buyer');
-                    }}
-                  >
-                    חזור
-                  </Button>
-                  <Button 
                     variant="success" 
                     fullWidth 
                     size="lg"
@@ -1545,6 +1532,19 @@ function MarketplaceApp() {
                     }}
                   >
                     {isPublishing ? 'מפרסם...' : isCompressing ? 'דוחס תמונה...' : 'פרסם פריט'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    size="lg"
+                    onClick={() => {
+                      setEditingItem(null);
+                      setPreviewImages([]);
+                      setOriginalImages([]);
+                      setView(userMode === 'seller' ? 'seller' : 'buyer');
+                    }}
+                  >
+                    חזור
                   </Button>
                 </div>
               )}
