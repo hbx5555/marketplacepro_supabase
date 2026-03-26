@@ -303,6 +303,7 @@ function MarketplaceApp() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
+  const [sellerItemsWithOffers, setSellerItemsWithOffers] = useState<Set<string>>(new Set());
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -610,9 +611,28 @@ function MarketplaceApp() {
     }
   };
 
+  const fetchSellerOffers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('item_id')
+        .eq('seller_id', currentUser.id)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      if (data) {
+        const itemIds = new Set(data.map((offer: any) => offer.item_id));
+        setSellerItemsWithOffers(itemIds);
+      }
+    } catch (error) {
+      console.error('Error fetching seller offers:', error);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
     fetchBuyerOffers();
+    fetchSellerOffers();
 
     const subscription = supabase
       .channel('items_changes')
@@ -750,6 +770,7 @@ function MarketplaceApp() {
       setOfferWasCanceled(false);
       setOfferSuccessModalOpen(true);
       fetchBuyerOffers();
+      fetchSellerOffers();
     } catch (error) {
       handleDatabaseError(error, OperationType.CREATE, 'offers');
     }
@@ -776,6 +797,7 @@ function MarketplaceApp() {
       setOfferWasCanceled(false);
       setOfferSuccessModalOpen(true);
       fetchBuyerOffers();
+      fetchSellerOffers();
     } catch (error) {
       handleDatabaseError(error, OperationType.UPDATE, 'offers');
     }
@@ -798,6 +820,7 @@ function MarketplaceApp() {
       setOfferWasCanceled(true);
       setOfferSuccessModalOpen(true);
       fetchBuyerOffers();
+      fetchSellerOffers();
     } catch (error) {
       handleDatabaseError(error, OperationType.DELETE, 'offers');
     }
@@ -1079,7 +1102,12 @@ function MarketplaceApp() {
                       <img src={item.photoURL} alt={item.title} className="w-24 h-24 rounded-xl object-cover" />
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-bold text-sm truncate">{item.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-sm truncate">{item.title}</h4>
+                            {sellerItemsWithOffers.has(item.id) && (
+                              <Heart className="w-4 h-4 fill-current text-zinc-900 flex-shrink-0" />
+                            )}
+                          </div>
                           <div className="relative">
                             <button 
                               className="p-1 text-zinc-400 hover:bg-zinc-100 rounded-full"
@@ -1202,7 +1230,12 @@ function MarketplaceApp() {
               >
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
+                {editingItem && sellerItemsWithOffers.has(editingItem.id) && (
+                  <Heart className="w-5 h-5 fill-current text-zinc-900" />
+                )}
+              </div>
               {editingItem ? (
                 <div className="relative">
                   <button 
