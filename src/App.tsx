@@ -744,7 +744,8 @@ function MarketplaceApp() {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background relative overflow-hidden flex flex-col">
+    <div className={`max-w-md mx-auto min-h-screen relative overflow-hidden flex flex-col ${view === 'entrance' ? 'bg-background' : ''}`} 
+         style={view !== 'entrance' ? { backgroundColor: '#f7eee3' } : {}}>
       <AnimatePresence mode="wait">
         {view === 'entrance' && (
           <motion.div 
@@ -1108,7 +1109,8 @@ function MarketplaceApp() {
             initial={{ y: 300, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 300, opacity: 0 }}
-            className="flex-1 flex flex-col h-full bg-white"
+            className="flex-1 flex flex-col h-full"
+            style={{ backgroundColor: '#f7eee3' }}
           >
             <header className="p-4 border-b border-divider flex items-center justify-between">
               <button 
@@ -1430,7 +1432,8 @@ function MarketplaceApp() {
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
-            className="flex-1 flex flex-col h-full bg-white"
+            className="flex-1 flex flex-col h-full"
+            style={{ backgroundColor: '#f7eee3' }}
           >
             <header className="p-4 border-b border-divider flex items-center justify-between sticky top-0 z-20 bg-white">
               <button onClick={() => setView('buyer')} className="p-2 hover:bg-zinc-100 rounded-full"><ArrowRight className="w-5 h-5" /></button>
