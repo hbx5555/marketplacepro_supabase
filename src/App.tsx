@@ -1103,10 +1103,10 @@ function MarketplaceApp() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-sm truncate">{item.title}</h4>
                             {sellerItemsWithOffers.has(item.id) && (
                               <Heart className="w-4 h-4 fill-current text-zinc-900 flex-shrink-0" />
                             )}
+                            <h4 className="font-bold text-sm truncate">{item.title}</h4>
                           </div>
                           <div className="relative">
                             <button 
@@ -1231,10 +1231,10 @@ function MarketplaceApp() {
                 <ArrowRight className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
                 {editingItem && sellerItemsWithOffers.has(editingItem.id) && (
                   <Heart className="w-5 h-5 fill-current text-zinc-900" />
                 )}
+                <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
               </div>
               {editingItem ? (
                 <div className="relative">
