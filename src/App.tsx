@@ -301,6 +301,7 @@ function MarketplaceApp() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -548,6 +549,7 @@ function MarketplaceApp() {
 
   const fetchItems = async () => {
     try {
+      setIsLoadingItems(true);
       const { data, error } = await supabase
         .from('items')
         .select('*')
@@ -579,6 +581,8 @@ function MarketplaceApp() {
       }
     } catch (error) {
       handleDatabaseError(error, OperationType.LIST, 'items');
+    } finally {
+      setIsLoadingItems(false);
     }
   };
 
@@ -862,42 +866,51 @@ function MarketplaceApp() {
 
             {/* Feed */}
             <main className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 pb-24">
-              {items.filter(i => 
-                i.status === 'active' && 
-                (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
-                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
-              ).map(item => (
-                <Card 
-                  key={item.id}
-                  className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
-                  onClick={() => { setSelectedItem(item); setView('item-details'); }}
-                >
-                  <div className="relative aspect-square">
-                    <img src={item.photoURL} alt={item.title} className="w-full h-full object-cover" />
-                    <button className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm">
-                      <Heart 
-                        className={cn(
-                          "w-4 h-4 text-zinc-900",
-                          buyerOffers.has(item.id) && "fill-current"
-                        )} 
-                      />
-                    </button>
-                  </div>
-                  <div className="p-3 space-y-1">
-                    <h3 className="font-bold text-sm leading-tight line-clamp-1">{item.title}</h3>
-                    <span className="text-sm font-bold text-amber-600">{item.price} ש"ח</span>
-                  </div>
-                </Card>
-              ))}
-              {items.filter(i => 
-                i.status === 'active' && 
-                (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
-                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
-              ).length === 0 && (
+              {isLoadingItems ? (
                 <div className="col-span-2 flex flex-col items-center justify-center py-20 text-zinc-400">
-                  <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
-                  <p className="font-medium">אין פריטים זמינים עדיין</p>
+                  <Loader2 className="w-12 h-12 mb-4 animate-spin" />
+                  <p className="font-medium">טוען פריטים...</p>
                 </div>
+              ) : (
+                <>
+                  {items.filter(i => 
+                    i.status === 'active' && 
+                    (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
+                    (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                  ).map(item => (
+                    <Card 
+                      key={item.id}
+                      className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
+                      onClick={() => { setSelectedItem(item); setView('item-details'); }}
+                    >
+                      <div className="relative aspect-square">
+                        <img src={item.photoURL} alt={item.title} className="w-full h-full object-cover" />
+                        <button className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm">
+                          <Heart 
+                            className={cn(
+                              "w-4 h-4 text-zinc-900",
+                              buyerOffers.has(item.id) && "fill-current"
+                            )} 
+                          />
+                        </button>
+                      </div>
+                      <div className="p-3 space-y-1">
+                        <h3 className="font-bold text-sm leading-tight line-clamp-1">{item.title}</h3>
+                        <span className="text-sm font-bold text-amber-600">{item.price} ש"ח</span>
+                      </div>
+                    </Card>
+                  ))}
+                  {items.filter(i => 
+                    i.status === 'active' && 
+                    (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
+                    (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                  ).length === 0 && (
+                    <div className="col-span-2 flex flex-col items-center justify-center py-20 text-zinc-400">
+                      <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
+                      <p className="font-medium">אין פריטים זמינים עדיין</p>
+                    </div>
+                  )}
+                </>
               )}
             </main>
 
@@ -984,10 +997,17 @@ function MarketplaceApp() {
 
             <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
               <h3 className="text-lg font-bold mb-4">מודעות פעילות</h3>
-              {items.filter(i => 
-                i.sellerId === currentUser.id &&
-                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
-              ).map(item => (
+              {isLoadingItems ? (
+                <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                  <Loader2 className="w-12 h-12 mb-4 animate-spin" />
+                  <p className="font-medium">טוען פריטים...</p>
+                </div>
+              ) : (
+                <>
+                  {items.filter(i => 
+                    i.sellerId === currentUser.id &&
+                    (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                  ).map(item => (
                 <div key={item.id}>
                   <Card 
                     className="p-3 cursor-pointer active:scale-[0.99] transition-transform relative"
@@ -1048,14 +1068,16 @@ function MarketplaceApp() {
                   </Card>
                 </div>
               ))}
-              {items.filter(i => 
-                i.sellerId === currentUser.id &&
-                (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
-              ).length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-                  <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
-                  <p className="font-medium">אין פריטים עדיין</p>
-                </div>
+                  {items.filter(i => 
+                    i.sellerId === currentUser.id &&
+                    (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                  ).length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                      <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
+                      <p className="font-medium">אין פריטים עדיין</p>
+                    </div>
+                  )}
+                </>
               )}
             </main>
 
