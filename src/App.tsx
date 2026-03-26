@@ -1778,7 +1778,7 @@ function MarketplaceApp() {
             {/* X Close Button */}
             <button 
               onClick={() => setOfferModalOpen(false)}
-              className="absolute top-4 start-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"
+              className="absolute top-4 end-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"
             >
               <X className="w-5 h-5 text-zinc-600" />
             </button>
