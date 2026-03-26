@@ -297,6 +297,7 @@ function MarketplaceApp() {
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [offerSuccessModalOpen, setOfferSuccessModalOpen] = useState(false);
+  const [offerWasCanceled, setOfferWasCanceled] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -590,13 +591,18 @@ function MarketplaceApp() {
     try {
       const { data, error } = await supabase
         .from('offers')
-        .select('item_id')
-        .eq('buyer_id', currentUser.id);
+        .select('*')
+        .eq('buyer_id', currentUser.id)
+        .eq('status', 'pending');
 
       if (error) throw error;
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
         setBuyerOffers(itemIds);
+        
+        // Store full offer data for later use
+        const offersMap = new Map(data.map((offer: any) => [offer.item_id, offer]));
+        (window as any).__buyerOffersData = offersMap;
       }
     } catch (error) {
       console.error('Error fetching buyer offers:', error);
@@ -740,10 +746,59 @@ function MarketplaceApp() {
       
       if (error) throw error;
       setOfferModalOpen(false);
+      setOfferWasCanceled(false);
       setOfferSuccessModalOpen(true);
       fetchBuyerOffers();
     } catch (error) {
       handleDatabaseError(error, OperationType.CREATE, 'offers');
+    }
+  };
+
+  const handleUpdateOffer = async (itemId: string, amount: number) => {
+    try {
+      const offersMap = (window as any).__buyerOffersData as Map<string, any>;
+      const existingOffer = offersMap?.get(itemId);
+      
+      if (!existingOffer) {
+        // No existing offer, create new one
+        await handleMakeOffer(itemId, amount);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('offers')
+        .update({ amount, created_at: new Date().toISOString() })
+        .eq('id', existingOffer.id);
+      
+      if (error) throw error;
+      setOfferModalOpen(false);
+      setOfferWasCanceled(false);
+      setOfferSuccessModalOpen(true);
+      fetchBuyerOffers();
+    } catch (error) {
+      handleDatabaseError(error, OperationType.UPDATE, 'offers');
+    }
+  };
+
+  const handleCancelOffer = async (itemId: string) => {
+    try {
+      const offersMap = (window as any).__buyerOffersData as Map<string, any>;
+      const existingOffer = offersMap?.get(itemId);
+      
+      if (!existingOffer) return;
+
+      const { error } = await supabase
+        .from('offers')
+        .delete()
+        .eq('id', existingOffer.id);
+      
+      if (error) throw error;
+      setOfferModalOpen(false);
+      setOfferWasCanceled(true);
+      setOfferSuccessModalOpen(true);
+      fetchBuyerOffers();
+    } catch (error) {
+      handleDatabaseError(error, OperationType.DELETE, 'offers');
     }
   };
 
@@ -1557,11 +1612,13 @@ function MarketplaceApp() {
                 fullWidth 
                 size="lg"
                 onClick={() => {
-                  setOfferAmount('');
+                  const offersMap = (window as any).__buyerOffersData as Map<string, any>;
+                  const existingOffer = offersMap?.get(selectedItem.id);
+                  setOfferAmount(existingOffer ? String(existingOffer.amount) : '');
                   setOfferModalOpen(true);
                 }}
               >
-                אני מעוניין
+                {buyerOffers.has(selectedItem.id) ? 'עדכן הצעה' : 'אני מעוניין'}
               </Button>
               <Button 
                 variant="outline" 
@@ -1718,7 +1775,9 @@ function MarketplaceApp() {
             className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
           >
             <h2 className="text-xl font-bold mb-2">מרקטפלייס פרו</h2>
-            <p className="text-zinc-600 mb-4">הזן את סכום ההצעה שלך עבור {selectedItem.title}:</p>
+            <p className="text-zinc-600 mb-4">
+              {buyerOffers.has(selectedItem.id) ? 'עדכן את סכום ההצעה שלך עבור' : 'הזן את סכום ההצעה שלך עבור'} {selectedItem.title}:
+            </p>
             <div className="relative mb-6">
               <span className="absolute end-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">ש"ח</span>
               <input 
@@ -1734,17 +1793,31 @@ function MarketplaceApp() {
               <Button variant="outline" fullWidth onClick={() => setOfferModalOpen(false)}>
                 ביטול
               </Button>
+              {buyerOffers.has(selectedItem.id) && (
+                <Button 
+                  variant="outline" 
+                  fullWidth 
+                  onClick={() => handleCancelOffer(selectedItem.id)}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  מחק הצעה
+                </Button>
+              )}
               <Button 
                 variant="success" 
                 fullWidth 
                 disabled={!offerAmount || isNaN(parseFloat(offerAmount))}
                 onClick={() => {
                   if (offerAmount && !isNaN(parseFloat(offerAmount))) {
-                    handleMakeOffer(selectedItem.id, parseFloat(offerAmount));
+                    if (buyerOffers.has(selectedItem.id)) {
+                      handleUpdateOffer(selectedItem.id, parseFloat(offerAmount));
+                    } else {
+                      handleMakeOffer(selectedItem.id, parseFloat(offerAmount));
+                    }
                   }
                 }}
               >
-                שלח הצעה
+                {buyerOffers.has(selectedItem.id) ? 'עדכן הצעה' : 'שלח הצעה'}
               </Button>
             </div>
           </motion.div>
@@ -1759,11 +1832,18 @@ function MarketplaceApp() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center"
           >
-            <div className="w-16 h-16 bg-success/20 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
+              offerWasCanceled ? "bg-red-100 text-red-600" : "bg-success/20 text-amber-700"
+            )}>
               <Heart className="w-8 h-8 fill-current" />
             </div>
-            <h2 className="text-xl font-bold mb-2">ההצעה נשלחה!</h2>
-            <p className="text-zinc-600 mb-6">ההצעה שלך נשלחה בהצלחה למוכר.</p>
+            <h2 className="text-xl font-bold mb-2">
+              {offerWasCanceled ? 'ההצעה בוטלה' : 'ההצעה נשלחה!'}
+            </h2>
+            <p className="text-zinc-600 mb-6">
+              {offerWasCanceled ? 'ההצעה שלך בוטלה בהצלחה.' : 'ההצעה שלך נשלחה בהצלחה למוכר.'}
+            </p>
             <Button variant="success" fullWidth onClick={() => setOfferSuccessModalOpen(false)}>
               אישור
             </Button>
