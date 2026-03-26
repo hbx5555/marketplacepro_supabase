@@ -182,7 +182,8 @@ import {
   Trash2,
   Sparkles,
   Loader2,
-  Book
+  Book,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -1772,8 +1773,16 @@ function MarketplaceApp() {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl relative"
           >
+            {/* X Close Button */}
+            <button 
+              onClick={() => setOfferModalOpen(false)}
+              className="absolute top-4 start-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-zinc-600" />
+            </button>
+
             <h2 className="text-xl font-bold mb-2">מרקטפלייס פרו</h2>
             <p className="text-zinc-600 mb-4">
               {buyerOffers.has(selectedItem.id) ? 'עדכן את סכום ההצעה שלך עבור' : 'הזן את סכום ההצעה שלך עבור'} {selectedItem.title}:
@@ -1789,37 +1798,52 @@ function MarketplaceApp() {
                 autoFocus
               />
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" fullWidth onClick={() => setOfferModalOpen(false)}>
-                ביטול
-              </Button>
-              {buyerOffers.has(selectedItem.id) && (
+            
+            {/* Buttons - Different layout for update vs new offer */}
+            {buyerOffers.has(selectedItem.id) ? (
+              // Update offer: 2 buttons side by side
+              <div className="flex gap-3">
                 <Button 
                   variant="outline" 
                   fullWidth 
                   onClick={() => handleCancelOffer(selectedItem.id)}
                   className="text-red-600 border-red-600 hover:bg-red-50"
                 >
-                  מחק הצעה
+                  בטל הצעה
                 </Button>
-              )}
-              <Button 
-                variant="success" 
-                fullWidth 
-                disabled={!offerAmount || isNaN(parseFloat(offerAmount))}
-                onClick={() => {
-                  if (offerAmount && !isNaN(parseFloat(offerAmount))) {
-                    if (buyerOffers.has(selectedItem.id)) {
+                <Button 
+                  variant="success" 
+                  fullWidth 
+                  disabled={!offerAmount || isNaN(parseFloat(offerAmount))}
+                  onClick={() => {
+                    if (offerAmount && !isNaN(parseFloat(offerAmount))) {
                       handleUpdateOffer(selectedItem.id, parseFloat(offerAmount));
-                    } else {
+                    }
+                  }}
+                >
+                  עדכן הצעה
+                </Button>
+              </div>
+            ) : (
+              // New offer: 2 buttons side by side
+              <div className="flex gap-3">
+                <Button variant="outline" fullWidth onClick={() => setOfferModalOpen(false)}>
+                  חזור
+                </Button>
+                <Button 
+                  variant="success" 
+                  fullWidth 
+                  disabled={!offerAmount || isNaN(parseFloat(offerAmount))}
+                  onClick={() => {
+                    if (offerAmount && !isNaN(parseFloat(offerAmount))) {
                       handleMakeOffer(selectedItem.id, parseFloat(offerAmount));
                     }
-                  }
-                }}
-              >
-                {buyerOffers.has(selectedItem.id) ? 'עדכן הצעה' : 'שלח הצעה'}
-              </Button>
-            </div>
+                  }}
+                >
+                  שלח הצעה
+                </Button>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
