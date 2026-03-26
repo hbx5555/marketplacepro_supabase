@@ -1,8 +1,10 @@
-const CACHE_NAME = 'marketplace-v2';
+const CACHE_NAME = 'marketplace-v4';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/new_icon.png',
+  '/new_icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
