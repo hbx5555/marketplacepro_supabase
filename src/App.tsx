@@ -1496,42 +1496,57 @@ function MarketplaceApp() {
                       setView(userMode === 'seller' ? 'seller' : 'buyer');
                     }}
                   >
-                    ביטול
+                    חזור
                   </Button>
                 </div>
               ) : (
-                <Button 
-                  variant="success" 
-                  fullWidth 
-                  size="lg"
-                  disabled={isPublishing || isCompressing}
-                  onClick={() => {
-                    const title = (document.getElementById('item-title') as HTMLInputElement).value;
-                    const price = parseFloat((document.getElementById('item-price') as HTMLInputElement).value);
-                    const category = (document.getElementById('item-category') as HTMLSelectElement).value;
-                    const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
-                    const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
-                    
-                    const currentPhotoURLs = previewImages;
-                    
-                    if (title && !isNaN(price)) {
-                      handleSaveItem({
-                        title,
-                        price,
-                        category,
-                        description,
-                        specifications,
-                        condition: selectedCondition,
-                        photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
-                        photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
-                      });
-                    } else {
-                      setPublishError('אנא הזן כותרת ומחיר תקין.');
-                    }
-                  }}
-                >
-                  {isPublishing ? 'מפרסם...' : isCompressing ? 'דוחס תמונה...' : 'פרסם פריט'}
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    size="lg"
+                    onClick={() => {
+                      setEditingItem(null);
+                      setPreviewImages([]);
+                      setOriginalImages([]);
+                      setView(userMode === 'seller' ? 'seller' : 'buyer');
+                    }}
+                  >
+                    חזור
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    fullWidth 
+                    size="lg"
+                    disabled={isPublishing || isCompressing}
+                    onClick={() => {
+                      const title = (document.getElementById('item-title') as HTMLInputElement).value;
+                      const price = parseFloat((document.getElementById('item-price') as HTMLInputElement).value);
+                      const category = (document.getElementById('item-category') as HTMLSelectElement).value;
+                      const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
+                      const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
+                      
+                      const currentPhotoURLs = previewImages;
+                      
+                      if (title && !isNaN(price)) {
+                        handleSaveItem({
+                          title,
+                          price,
+                          category,
+                          description,
+                          specifications,
+                          condition: selectedCondition,
+                          photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
+                          photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
+                        });
+                      } else {
+                        setPublishError('אנא הזן כותרת ומחיר תקין.');
+                      }
+                    }}
+                  >
+                    {isPublishing ? 'מפרסם...' : isCompressing ? 'דוחס תמונה...' : 'פרסם פריט'}
+                  </Button>
+                </div>
               )}
             </footer>
           </motion.div>
