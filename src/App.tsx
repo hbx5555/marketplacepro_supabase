@@ -1102,22 +1102,21 @@ function MarketplaceApp() {
                       <img src={item.photoURL} alt={item.title} className="w-24 h-24 rounded-xl object-cover" />
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm truncate">{item.title}</h4>
+                          <div className="flex items-center gap-1">
                             {sellerItemsWithOffers.has(item.id) && (
                               <Heart className="w-4 h-4 fill-current text-zinc-900 flex-shrink-0" />
                             )}
-                            <h4 className="font-bold text-sm truncate">{item.title}</h4>
-                          </div>
-                          <div className="relative">
-                            <button 
-                              className="p-1 text-zinc-400 hover:bg-zinc-100 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(openMenuId === item.id ? null : item.id);
-                              }}
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+                            <div className="relative">
+                              <button 
+                                className="p-1 text-zinc-400 hover:bg-zinc-100 rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === item.id ? null : item.id);
+                                }}
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
                             {openMenuId === item.id && (
                               <div className="absolute end-0 top-6 bg-white shadow-lg rounded-lg border border-zinc-100 py-1 z-10 w-32">
                                 <button 
@@ -1131,6 +1130,7 @@ function MarketplaceApp() {
                                 </button>
                               </div>
                             )}
+                            </div>
                           </div>
                         </div>
                         <div className="text-lg font-bold text-amber-600 mt-1">{item.price} ש"ח</div>
@@ -1230,23 +1230,22 @@ function MarketplaceApp() {
               >
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-2">
-                {editingItem && sellerItemsWithOffers.has(editingItem.id) && (
-                  <Heart className="w-5 h-5 fill-current text-zinc-900" />
-                )}
-                <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
-              </div>
+              <h1 className="text-lg font-bold">{editingItem ? 'ערוך פריט' : 'הוסף פריט חדש'}</h1>
               {editingItem ? (
-                <div className="relative">
-                  <button 
-                    className="p-2 hover:bg-zinc-100 rounded-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === editingItem.id ? null : editingItem.id);
-                    }}
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
+                <div className="flex items-center gap-1">
+                  {sellerItemsWithOffers.has(editingItem.id) && (
+                    <Heart className="w-5 h-5 fill-current text-zinc-900" />
+                  )}
+                  <div className="relative">
+                    <button 
+                      className="p-2 hover:bg-zinc-100 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === editingItem.id ? null : editingItem.id);
+                      }}
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
                   {openMenuId === editingItem.id && (
                     <div className="absolute end-0 top-10 bg-white shadow-lg rounded-lg border border-zinc-100 py-1 z-10 w-32">
                       <button 
@@ -1260,6 +1259,7 @@ function MarketplaceApp() {
                       </button>
                     </div>
                   )}
+                  </div>
                 </div>
               ) : (
                 <div className="w-10"></div>
