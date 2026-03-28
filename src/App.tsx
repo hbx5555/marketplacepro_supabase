@@ -1713,19 +1713,29 @@ function MarketplaceApp() {
                 מדריך <ChevronLeft className="w-5 h-5 text-zinc-400" />
               </button>
               <div className="pt-8 space-y-4">
-                <Button 
-                  variant="success" 
-                  fullWidth 
-                  onClick={() => setView('entrance')}
-                >
-                  מסך כניסה
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    onClick={() => { setUserMode('buyer'); setView('buyer'); }}
+                  >
+                    קונה
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    fullWidth 
+                    onClick={() => { setUserMode('seller'); setView('seller'); }}
+                  >
+                    מוכר
+                  </Button>
+                </div>
+
                 <Button 
                   variant="outline" 
                   fullWidth 
-                  className="text-accent border-accent/20 hover:bg-accent/5"
+                  onClick={() => setView('entrance')}
                 >
-                  התנתק
+                  חזרה לתחילה
                 </Button>
               </div>
             </main>
