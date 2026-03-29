@@ -984,6 +984,9 @@ function MarketplaceApp() {
   };
 
   useEffect(() => {
+    if (!currentUser) return;
+    
+    console.log('🔄 Setting up subscriptions for user:', currentUser.id);
     fetchItems();
     fetchBuyerOffers();
     fetchSellerOffers();
@@ -992,7 +995,10 @@ function MarketplaceApp() {
       .channel('items_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'items' },
-        () => { fetchItems(); }
+        () => { 
+          console.log('📢 Items changed - refetching...');
+          fetchItems(); 
+        }
       )
       .subscribe();
 
@@ -1001,6 +1007,7 @@ function MarketplaceApp() {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'offers' },
         () => { 
+          console.log('📢 Offers changed - refetching buyer and seller offers...');
           fetchBuyerOffers();
           fetchSellerOffers();
         }
@@ -1008,10 +1015,11 @@ function MarketplaceApp() {
       .subscribe();
 
     return () => {
+      console.log('🔌 Unsubscribing from channels');
       itemsSubscription.unsubscribe();
       offersSubscription.unsubscribe();
     };
-  }, []);
+  }, [currentUser?.id]);
 
   const handleSaveItem = async (itemData: Partial<Item>) => {
     setIsPublishing(true);
