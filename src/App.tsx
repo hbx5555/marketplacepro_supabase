@@ -975,7 +975,7 @@ function MarketplaceApp() {
     fetchBuyerOffers();
     fetchSellerOffers();
 
-    const subscription = supabase
+    const itemsSubscription = supabase
       .channel('items_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'items' },
@@ -983,8 +983,20 @@ function MarketplaceApp() {
       )
       .subscribe();
 
+    const offersSubscription = supabase
+      .channel('offers_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'offers' },
+        () => { 
+          fetchBuyerOffers();
+          fetchSellerOffers();
+        }
+      )
+      .subscribe();
+
     return () => {
-      subscription.unsubscribe();
+      itemsSubscription.unsubscribe();
+      offersSubscription.unsubscribe();
     };
   }, []);
 
