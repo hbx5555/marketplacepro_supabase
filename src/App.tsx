@@ -2124,6 +2124,11 @@ function MarketplaceApp() {
                 fullWidth 
                 size="lg"
                 onClick={() => {
+                  // Check if user is trying to make an offer on their own item
+                  if (currentUser && selectedItem.sellerId === currentUser.id) {
+                    alert('לא ניתן להגיש הצעה לפריטים שפרסמת');
+                    return;
+                  }
                   const offersMap = (window as any).__buyerOffersData as Map<string, any>;
                   const existingOffer = offersMap?.get(selectedItem.id);
                   setOfferAmount(existingOffer ? String(existingOffer.amount) : '');
