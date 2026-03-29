@@ -304,6 +304,7 @@ function MarketplaceApp() {
   const [priceSearchResults, setPriceSearchResults] = useState<Array<{site: string, price: number, currency: string}>>([]);
   const [searchOptimizedText, setSearchOptimizedText] = useState<{brand: string, modelName: string, searchQuery: string} | null>(null);
   const [currentSearchingSite, setCurrentSearchingSite] = useState<string>('');
+  const [nameMismatchModal, setNameMismatchModal] = useState<{open: boolean, oldName: string, newName: string, userData: any} | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -378,7 +379,19 @@ function MarketplaceApp() {
         .single();
       
       if (existingUser && !fetchError) {
-        // User exists - login
+        // User exists - check if name matches
+        if (existingUser.name !== name) {
+          // Name mismatch - show modal
+          setNameMismatchModal({
+            open: true,
+            oldName: existingUser.name,
+            newName: name,
+            userData: existingUser
+          });
+          return { success: true, message: '' }; // Don't show alert, modal will handle it
+        }
+        
+        // Name matches - login directly
         const mappedUser: User = {
           id: existingUser.id,
           name: existingUser.name,
@@ -471,6 +484,69 @@ function MarketplaceApp() {
     } catch (error) {
       console.error('Login/Register failed:', error);
       return { success: false, message: 'שגיאה בהתחברות. נסה שוב.' };
+    }
+  };
+
+  const handleNameDecision = async (keepOld: boolean) => {
+    if (!nameMismatchModal) return;
+    
+    const { userData, oldName, newName } = nameMismatchModal;
+    const finalName = keepOld ? oldName : newName;
+    
+    try {
+      // Update name in database if changing
+      if (!keepOld) {
+        await supabase
+          .from('users')
+          .update({ name: newName })
+          .eq('id', userData.id);
+        
+        // Update seller details in items
+        await updateSellerDetails(userData.id, newName, userData.photo_url || DEFAULT_AVATAR);
+      }
+      
+      // Update last login
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userData.id);
+      
+      const mappedUser: User = {
+        id: userData.id,
+        name: finalName,
+        phone_number: userData.phone_number,
+        email: userData.email || '',
+        photoURL: userData.photo_url || DEFAULT_AVATAR,
+        location: userData.location || '',
+        rating: userData.rating || 0,
+        earned: userData.earned || 0,
+        activeListings: userData.active_listings || 0,
+        totalListings: userData.total_listings || 0,
+        created_at: userData.created_at,
+        last_login: userData.last_login
+      };
+      
+      // Save to localStorage
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        userId: userData.id,
+        phoneNumber: userData.phone_number,
+        name: finalName,
+        lastLogin: new Date().toISOString()
+      }));
+      
+      setCurrentUser(mappedUser);
+      setIsAuthenticated(true);
+      setNameMismatchModal(null);
+      
+      // Refresh items if name was changed
+      if (!keepOld) {
+        await fetchItems();
+      }
+      
+      setView('entrance');
+    } catch (error) {
+      console.error('Error updating name:', error);
+      alert('שגיאה בעדכון השם. נסה שוב.');
     }
   };
 
@@ -2425,6 +2501,48 @@ function MarketplaceApp() {
                 onClick={() => setSearchModalOpen(false)}
               >
                 חפש
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Name Mismatch Modal */}
+      {nameMismatchModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+          >
+            <h2 className="text-xl font-bold mb-6 text-center">שינוי שם</h2>
+            
+            <div className="space-y-4 mb-6">
+              <div className="bg-zinc-50 rounded-xl p-4">
+                <p className="text-sm text-zinc-600 mb-2">השם שבשימוש כרגע:</p>
+                <p className="text-lg font-bold text-zinc-900">{nameMismatchModal.oldName}</p>
+              </div>
+              
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                <p className="text-sm text-amber-700 mb-2">לשנות ל:</p>
+                <p className="text-lg font-bold text-amber-900">{nameMismatchModal.newName}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                fullWidth 
+                onClick={() => handleNameDecision(true)}
+              >
+                השאר ללא שינוי
+              </Button>
+              <Button 
+                variant="success" 
+                fullWidth 
+                onClick={() => handleNameDecision(false)}
+              >
+                שנה לשם המעודכן
               </Button>
             </div>
           </motion.div>
