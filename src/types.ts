@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   name: string;
+  phone_number: string;
   email: string;
   photoURL: string;
   location: string;
@@ -8,6 +9,8 @@ export interface User {
   earned: number;
   activeListings: number;
   totalListings: number;
+  created_at?: string;
+  last_login?: string;
 }
 
 export interface Item {

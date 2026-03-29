@@ -194,17 +194,10 @@ function cn(...inputs: ClassValue[]) {
 }
 
 // --- Mock Data & Constants ---
-const DEFAULT_USER: User = {
-  id: 'user_123',
-  name: 'שרה כהן',
-  email: 'sarah@example.com',
-  photoURL: 'https://picsum.photos/seed/sarah/200',
-  location: 'תל אביב, ישראל',
-  rating: 4.8,
-  earned: 1240,
-  activeListings: 24,
-  totalListings: 156
-};
+const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
+
+// LocalStorage key for user session
+const AUTH_STORAGE_KEY = 'promarket_user';
 
 const CATEGORIES = [
   { id: 'electronics', label: 'אלקטרוניקה', icon: '⚡', color: 'bg-amber-100 text-amber-700' },
@@ -281,11 +274,13 @@ const getApiKey = async () => {
 };
 
 function MarketplaceApp() {
-  const [view, setView] = useState<'entrance' | 'buyer' | 'seller' | 'add-item' | 'item-details' | 'settings' | 'account-settings' | 'help'>('entrance');
+  const [view, setView] = useState<'auth' | 'entrance' | 'buyer' | 'seller' | 'add-item' | 'item-details' | 'settings' | 'account-settings' | 'help'>('auth');
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [userMode, setUserMode] = useState<'buyer' | 'seller'>('buyer');
-  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [originalImages, setOriginalImages] = useState<string[]>([]);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -312,35 +307,179 @@ function MarketplaceApp() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
+  // Authentication check on app start
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', DEFAULT_USER.id)
-        .single();
-      
-      if (data && !error) {
-        // Map snake_case database columns to camelCase User properties
-        const mappedUser: User = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          photoURL: data.photo_url,
-          location: data.location,
-          rating: data.rating,
-          earned: data.earned,
-          activeListings: data.active_listings,
-          totalListings: data.total_listings
-        };
-        setCurrentUser(mappedUser);
-      } else {
-        await supabase.from('users').insert([DEFAULT_USER]);
-        setCurrentUser(DEFAULT_USER);
+    const checkAuth = async () => {
+      try {
+        const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+        
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          
+          // Verify user still exists in database
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userData.userId)
+            .single();
+          
+          if (data && !error) {
+            const mappedUser: User = {
+              id: data.id,
+              name: data.name,
+              phone_number: data.phone_number,
+              email: data.email || '',
+              photoURL: data.photo_url || DEFAULT_AVATAR,
+              location: data.location || '',
+              rating: data.rating || 0,
+              earned: data.earned || 0,
+              activeListings: data.active_listings || 0,
+              totalListings: data.total_listings || 0,
+              created_at: data.created_at,
+              last_login: data.last_login
+            };
+            
+            // Update last login
+            await supabase
+              .from('users')
+              .update({ last_login: new Date().toISOString() })
+              .eq('id', data.id);
+            
+            setCurrentUser(mappedUser);
+            setIsAuthenticated(true);
+            setView('entrance');
+          } else {
+            // User not found in DB, clear localStorage
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            setView('auth');
+          }
+        } else {
+          setView('auth');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setView('auth');
+      } finally {
+        setIsCheckingAuth(false);
       }
     };
-    fetchUser();
+    
+    checkAuth();
   }, []);
+
+  // Authentication functions
+  const handleLoginOrRegister = async (name: string, phoneNumber: string) => {
+    try {
+      // Check if user exists
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .single();
+      
+      if (existingUser && !fetchError) {
+        // User exists - login
+        const mappedUser: User = {
+          id: existingUser.id,
+          name: existingUser.name,
+          phone_number: existingUser.phone_number,
+          email: existingUser.email || '',
+          photoURL: existingUser.photo_url || DEFAULT_AVATAR,
+          location: existingUser.location || '',
+          rating: existingUser.rating || 0,
+          earned: existingUser.earned || 0,
+          activeListings: existingUser.active_listings || 0,
+          totalListings: existingUser.total_listings || 0,
+          created_at: existingUser.created_at,
+          last_login: existingUser.last_login
+        };
+        
+        // Update last login
+        await supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', existingUser.id);
+        
+        // Save to localStorage
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+          userId: existingUser.id,
+          phoneNumber: existingUser.phone_number,
+          name: existingUser.name,
+          lastLogin: new Date().toISOString()
+        }));
+        
+        setCurrentUser(mappedUser);
+        setIsAuthenticated(true);
+        setView('entrance');
+        
+        return { success: true, message: 'התחברת בהצלחה!' };
+      } else {
+        // User doesn't exist - register
+        const userId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        
+        const newUser = {
+          id: userId,
+          name: name,
+          phone_number: phoneNumber,
+          email: '',
+          photo_url: DEFAULT_AVATAR,
+          location: '',
+          rating: 0,
+          earned: 0,
+          active_listings: 0,
+          total_listings: 0,
+          created_at: now,
+          last_login: now
+        };
+        
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([newUser]);
+        
+        if (insertError) throw insertError;
+        
+        const mappedUser: User = {
+          id: userId,
+          name: name,
+          phone_number: phoneNumber,
+          email: '',
+          photoURL: DEFAULT_AVATAR,
+          location: '',
+          rating: 0,
+          earned: 0,
+          activeListings: 0,
+          totalListings: 0,
+          created_at: now,
+          last_login: now
+        };
+        
+        // Save to localStorage
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+          userId: userId,
+          phoneNumber: phoneNumber,
+          name: name,
+          lastLogin: now
+        }));
+        
+        setCurrentUser(mappedUser);
+        setIsAuthenticated(true);
+        setView('entrance');
+        
+        return { success: true, message: 'נרשמת בהצלחה!' };
+      }
+    } catch (error) {
+      console.error('Login/Register failed:', error);
+      return { success: false, message: 'שגיאה בהתחברות. נסה שוב.' };
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setView('auth');
+  };
 
   const CONDITION_COLORS: Record<string, string> = {
     'כמו חדש': 'bg-emerald-500 text-white border-emerald-500',
@@ -712,6 +851,7 @@ function MarketplaceApp() {
   };
 
   const fetchBuyerOffers = async () => {
+    if (!currentUser) return;
     try {
       const { data, error } = await supabase
         .from('offers')
@@ -734,6 +874,7 @@ function MarketplaceApp() {
   };
 
   const fetchSellerOffers = async () => {
+    if (!currentUser) return;
     try {
       const { data, error } = await supabase
         .from('offers')
@@ -806,6 +947,9 @@ function MarketplaceApp() {
         
         if (error) throw error;
       } else {
+        if (!currentUser) {
+          throw new Error('אנא התחבר תחילה');
+        }
         const itemId = `item_${Date.now()}_${Math.random().toString(36).substring(7)}`;
         const newItem = {
           ...dbData,
@@ -873,6 +1017,10 @@ function MarketplaceApp() {
   };
 
   const handleMakeOffer = async (itemId: string, amount: number) => {
+    if (!currentUser) {
+      alert('אנא התחבר תחילה');
+      return;
+    }
     try {
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const { error } = await supabase
@@ -948,10 +1096,111 @@ function MarketplaceApp() {
     }
   };
 
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f7eee3' }}>
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-zinc-600 font-medium">טוען...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`max-w-md mx-auto min-h-screen relative overflow-hidden flex flex-col ${view === 'entrance' ? 'bg-background' : ''}`} 
-         style={view !== 'entrance' ? { backgroundColor: '#f7eee3' } : {}}>
+    <div className={`max-w-md mx-auto min-h-screen relative overflow-hidden flex flex-col ${view === 'entrance' || view === 'auth' ? 'bg-background' : ''}`} 
+         style={view !== 'entrance' && view !== 'auth' ? { backgroundColor: '#f7eee3' } : {}}>
       <AnimatePresence mode="wait">
+        {view === 'auth' && (
+          <motion.div
+            key="auth"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex flex-col relative h-full"
+          >
+            <div className="absolute inset-0 z-0 h-full">
+              <img 
+                src="https://pub-498e856fd166452dab90acf56f450320.r2.dev/clock.jpg" 
+                alt="Background" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+            </div>
+
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8">
+              <div className="w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl mb-6">
+                <img src="/new_icon.png" alt="מרקטפלייס" className="w-32 h-32 rounded-3xl" />
+              </div>
+              <h1 className="text-white text-4xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
+              <p className="text-white/90 text-lg font-medium mb-12">ברוכים הבאים!</p>
+
+              <div className="w-full bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl">
+                <h2 className="text-xl font-bold mb-6 text-center">התחברות / הרשמה</h2>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const name = formData.get('name') as string;
+                    const phone = formData.get('phone') as string;
+                    
+                    if (!name || !phone) {
+                      alert('נא למלא את כל השדות');
+                      return;
+                    }
+                    
+                    // Validate Israeli phone format
+                    const phoneRegex = /^05\d{8}$/;
+                    if (!phoneRegex.test(phone)) {
+                      alert('מספר טלפון לא תקין. נא להזין מספר בפורמט: 05XXXXXXXX');
+                      return;
+                    }
+                    
+                    const result = await handleLoginOrRegister(name, phone);
+                    if (!result.success) {
+                      alert(result.message);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-zinc-700">שם מלא</label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="הזן שם מלא"
+                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-zinc-700">מספר טלפון</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="05XXXXXXXX"
+                      pattern="05[0-9]{8}"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" variant="success" fullWidth className="mt-6">
+                    המשך
+                  </Button>
+                </form>
+                <p className="text-xs text-zinc-500 text-center mt-4">
+                  אין צורך באימות SMS בשלב זה
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {view === 'entrance' && (
           <motion.div 
             key="entrance"
@@ -1165,11 +1414,11 @@ function MarketplaceApp() {
               </div>
               
               <div className="flex items-center gap-4 mb-6">
-                <img src={currentUser.photoURL} alt={currentUser.name} className="w-16 h-16 rounded-full object-cover" referrerPolicy="no-referrer" />
+                <img src={currentUser?.photoURL || DEFAULT_AVATAR} alt={currentUser?.name || 'User'} className="w-16 h-16 rounded-full object-cover" referrerPolicy="no-referrer" />
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold">{currentUser.name}</h2>
+                  <h2 className="text-xl font-bold">{currentUser?.name || 'משתמש'}</h2>
                   <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                    <MapPin className="w-4 h-4" /> {currentUser.location}
+                    <MapPin className="w-4 h-4" /> {currentUser?.location || 'לא צוין'}
                   </div>
                   <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
                     <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {currentUser.rating} (127)
@@ -1180,16 +1429,16 @@ function MarketplaceApp() {
 
               <div className="grid grid-cols-3 gap-4 border-t border-divider pt-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold">{items.filter(i => i.sellerId === currentUser.id && i.status === 'active').length}</div>
+                  <div className="text-lg font-bold">{items.filter(i => i.sellerId === currentUser?.id && i.status === 'active').length}</div>
                   <div className="text-[10px] font-bold text-zinc-400 uppercase">פעיל</div>
                 </div>
                 <div className="text-center border-x border-divider">
-                  <div className="text-lg font-bold">{items.filter(i => i.sellerId === currentUser.id).length}</div>
+                  <div className="text-lg font-bold">{items.filter(i => i.sellerId === currentUser?.id).length}</div>
                   <div className="text-[10px] font-bold text-zinc-400 uppercase">סה״כ</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold">
-                    {items.filter(i => i.sellerId === currentUser.id).reduce((sum, item) => sum + (item.price || 0), 0)} ש"ח
+                    {items.filter(i => i.sellerId === currentUser?.id).reduce((sum, item) => sum + (item.price || 0), 0)} ש"ח
                   </div>
                   <div className="text-[10px] font-bold text-zinc-400 uppercase">ערך כולל</div>
                 </div>
@@ -1206,7 +1455,7 @@ function MarketplaceApp() {
               ) : (
                 <>
                   {items.filter(i => 
-                    i.sellerId === currentUser.id &&
+                    i.sellerId === currentUser?.id &&
                     (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
                   ).map(item => (
                 <div key={item.id}>
@@ -1275,7 +1524,7 @@ function MarketplaceApp() {
                 </div>
               ))}
                   {items.filter(i => 
-                    i.sellerId === currentUser.id &&
+                    i.sellerId === currentUser?.id &&
                     (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
                   ).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
@@ -1869,9 +2118,9 @@ function MarketplaceApp() {
                 <Button 
                   variant="outline" 
                   fullWidth 
-                  onClick={() => setView('entrance')}
+                  onClick={handleLogout}
                 >
-                  חזרה לתחילה
+                  התנתק
                 </Button>
               </div>
             </main>
@@ -1892,7 +2141,7 @@ function MarketplaceApp() {
             <main className="p-4 space-y-6">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative w-24 h-24">
-                  <img src={currentUser.photoURL} alt={currentUser.name} className="w-24 h-24 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={currentUser?.photoURL || DEFAULT_AVATAR} alt={currentUser?.name || 'User'} className="w-24 h-24 rounded-full object-cover" referrerPolicy="no-referrer" />
                   <button 
                     className="absolute bottom-0 end-0 p-2 bg-primary text-white rounded-full shadow-lg"
                     onClick={() => {
@@ -1919,12 +2168,13 @@ function MarketplaceApp() {
                 <label className="block text-sm font-bold">שם מלא</label>
                 <input 
                   type="text" 
-                  value={currentUser.name}
-                  onChange={(e) => setCurrentUser(prev => ({ ...prev, name: e.target.value }))}
+                  value={currentUser?.name || ''}
+                  onChange={(e) => setCurrentUser(prev => prev ? { ...prev, name: e.target.value } : null)}
                   className="w-full p-3 bg-zinc-100 rounded-xl font-medium"
                 />
               </div>
               <Button fullWidth onClick={async () => {
+                if (!currentUser) return;
                 await supabase
                   .from('users')
                   .update({ name: currentUser.name, photo_url: currentUser.photoURL })
