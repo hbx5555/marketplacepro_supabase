@@ -576,8 +576,8 @@ function MarketplaceApp() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Show searching message (no site cycling)
-      setCurrentSearchingSite('מחפש...');
+      // Show waiting message (no site cycling)
+      setCurrentSearchingSite('המתן...');
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -599,9 +599,11 @@ function MarketplaceApp() {
       const results = JSON.parse(response.text || '[]');
       setPriceSearchResults(results);
       
-      // Show last site with match if any results found
+      // Show completion message
       if (results.length > 0) {
-        setCurrentSearchingSite(results[results.length - 1].site);
+        setCurrentSearchingSite('נמצאו תוצאות');
+      } else {
+        setCurrentSearchingSite('לא נמצאו תוצאות');
       }
 
       // Update price input with range or "no results"
@@ -617,18 +619,19 @@ function MarketplaceApp() {
         }
       }
 
+      // Modal stays open - user must click button to close
+
     } catch (error: any) {
       console.error('Price search failed:', error);
+      setCurrentSearchingSite('שגיאה בחיפוש');
       alert(`חיפוש מחיר נכשל.\n\nפרטים:\n${error.message || error}`);
       
       const priceInput = document.getElementById('item-price') as HTMLInputElement;
       if (priceInput) {
         priceInput.value = 'לא נמצא';
       }
-    } finally {
-      setSearchingPrice(false);
-      setCurrentSearchingSite('');
     }
+    // Note: searchingPrice stays true - modal stays open until user clicks button
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2075,22 +2078,62 @@ function MarketplaceApp() {
             className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center"
           >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+              {currentSearchingSite === 'המתן...' ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : (
+                <Search className="w-8 h-8 text-white" />
+              )}
             </div>
             <h2 className="text-xl font-bold mb-2">מחפש מחירים...</h2>
             <p className="text-zinc-600 mb-4">
               {currentSearchingSite}
             </p>
             {priceSearchResults.length > 0 && (
-              <div className="mt-4">
+              <div className="mt-4 mb-6">
                 <p className="text-sm font-semibold text-zinc-700 mb-2">נמצאו מחירים באתרים:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
+                <div className="flex flex-wrap gap-2 justify-center mb-4">
                   {priceSearchResults.map((result, idx) => (
                     <div key={idx} className="px-3 py-1 bg-success/20 text-zinc-700 rounded-full text-sm font-medium">
                       {result.site}: ₪{result.price}
                     </div>
                   ))}
                 </div>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    onClick={() => {
+                      setSearchingPrice(false);
+                      setCurrentSearchingSite('');
+                    }}
+                  >
+                    עצור
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    fullWidth 
+                    onClick={() => {
+                      setSearchingPrice(false);
+                      setCurrentSearchingSite('');
+                    }}
+                  >
+                    המשך
+                  </Button>
+                </div>
+              </div>
+            )}
+            {currentSearchingSite === 'לא נמצאו תוצאות' && (
+              <div className="mt-4">
+                <Button 
+                  variant="outline" 
+                  fullWidth 
+                  onClick={() => {
+                    setSearchingPrice(false);
+                    setCurrentSearchingSite('');
+                  }}
+                >
+                  סגור
+                </Button>
               </div>
             )}
           </motion.div>
