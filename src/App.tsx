@@ -1787,7 +1787,7 @@ function MarketplaceApp() {
           >
             <header className="p-4 border-b border-divider bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between">
-                <button onClick={() => setView(offersListMode === 'buyer' ? 'entrance' : 'seller')} className="p-2 hover:bg-zinc-100 rounded-full">
+                <button onClick={() => setView(offersListMode === 'buyer' ? 'buyer' : 'seller')} className="p-2 hover:bg-zinc-100 rounded-full">
                   <ArrowRight className="w-6 h-6" />
                 </button>
                 <h1 className="text-xl font-bold">{offersListMode === 'buyer' ? 'ההצעות שלי' : 'הצעות שקיבלתי'}</h1>
@@ -1859,7 +1859,7 @@ function MarketplaceApp() {
             {/* Bottom Navigation */}
             <nav className="fixed bottom-0 start-0 end-0 max-w-md mx-auto bg-white border-t border-divider p-4 flex justify-around items-center z-30">
               <button 
-                onClick={() => setView(offersListMode === 'buyer' ? 'entrance' : 'seller')}
+                onClick={() => setView(offersListMode === 'buyer' ? 'buyer' : 'seller')}
                 className="flex flex-col items-center gap-1 text-zinc-400"
               >
                 <Home className="w-7 h-7" />
