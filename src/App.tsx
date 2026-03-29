@@ -929,17 +929,23 @@ function MarketplaceApp() {
   };
 
   const fetchBuyerOffers = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('❌ fetchBuyerOffers: No current user');
+      return;
+    }
     try {
+      console.log('🔍 Fetching BUYER offers for user:', currentUser.id, currentUser.name);
       const { data, error } = await supabase
         .from('offers')
         .select('*')
         .eq('buyer_id', currentUser.id)
         .eq('status', 'pending');
 
+      console.log('📊 BUYER offers query result:', { data, error });
       if (error) throw error;
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
+        console.log('💙 BUYER offers - Item IDs with offers:', Array.from(itemIds));
         setBuyerOffers(itemIds);
         
         // Store full offer data for later use
@@ -947,30 +953,33 @@ function MarketplaceApp() {
         (window as any).__buyerOffersData = offersMap;
       }
     } catch (error) {
-      console.error('Error fetching buyer offers:', error);
+      console.error('❌ Error fetching buyer offers:', error);
     }
   };
 
   const fetchSellerOffers = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('❌ fetchSellerOffers: No current user');
+      return;
+    }
     try {
-      console.log('Fetching seller offers for user:', currentUser.id);
+      console.log('🔍 Fetching SELLER offers for user:', currentUser.id, currentUser.name);
       const { data, error } = await supabase
         .from('offers')
         .select('*')
         .eq('seller_id', currentUser.id)
         .eq('status', 'pending');
 
-      console.log('Seller offers query result:', { data, error });
+      console.log('📊 SELLER offers query result:', { data, error });
       if (error) throw error;
       if (data) {
-        console.log('Seller offers data:', data);
+        console.log('📦 SELLER offers full data:', data);
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
-        console.log('Seller items with offers:', Array.from(itemIds));
+        console.log('🖤 SELLER offers - Item IDs with offers:', Array.from(itemIds));
         setSellerItemsWithOffers(itemIds);
       }
     } catch (error) {
-      console.error('Error fetching seller offers:', error);
+      console.error('❌ Error fetching seller offers:', error);
     }
   };
 
@@ -1126,19 +1135,26 @@ function MarketplaceApp() {
       if (itemError) throw itemError;
       
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const offerData = {
+        id: offerId,
+        item_id: itemId,
+        buyer_id: currentUser.id,
+        seller_id: itemData.seller_id,
+        amount,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('✨ Creating NEW offer:', offerData);
       const { error } = await supabase
         .from('offers')
-        .insert([{
-          id: offerId,
-          item_id: itemId,
-          buyer_id: currentUser.id,
-          seller_id: itemData.seller_id,
-          amount,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        }]);
+        .insert([offerData]);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error creating offer:', error);
+        throw error;
+      }
+      console.log('✅ Offer created successfully!');
       setOfferModalOpen(false);
       setOfferWasCanceled(false);
       setOfferSuccessModalOpen(true);
