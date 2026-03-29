@@ -305,6 +305,7 @@ function MarketplaceApp() {
   const [searchOptimizedText, setSearchOptimizedText] = useState<{brand: string, modelName: string, searchQuery: string} | null>(null);
   const [currentSearchingSite, setCurrentSearchingSite] = useState<string>('');
   const [nameMismatchModal, setNameMismatchModal] = useState<{open: boolean, oldName: string, newName: string, userData: any} | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{open: boolean, itemId: string} | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -1211,8 +1212,7 @@ function MarketplaceApp() {
               <div className="w-32 h-32 rounded-3xl flex items-center justify-center shadow-xl mb-6">
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-32 h-32 rounded-3xl" />
               </div>
-              <h1 className="text-white text-4xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-lg font-medium mb-12">ברוכים הבאים!</p>
+              <h1 className="text-white text-4xl font-extrabold tracking-tight mb-12">מרקטפלייס</h1>
 
               <div className="w-full bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl">
                 <h2 className="text-xl font-bold mb-6 text-center">התחברות / הרשמה</h2>
@@ -1569,9 +1569,10 @@ function MarketplaceApp() {
                                 <button 
                                   onClick={(e) => { 
                                     e.stopPropagation(); 
-                                    handleDeleteItem(item.id); 
+                                    setOpenMenuId(null);
+                                    setDeleteConfirmModal({ open: true, itemId: item.id });
                                   }} 
-                                  className="w-full text-start px-4 py-2 text-sm text-red-500 hover:bg-zinc-50 font-medium"
+                                  className="w-full text-start px-4 py-2 text-sm text-white font-medium rounded-lg" style={{ backgroundColor: '#b6312c' }}
                                 >
                                   מחק
                                 </button>
@@ -1698,9 +1699,10 @@ function MarketplaceApp() {
                       <button 
                         onClick={(e) => { 
                           e.stopPropagation(); 
-                          handleDeleteItem(editingItem.id); 
+                          setOpenMenuId(null);
+                          setDeleteConfirmModal({ open: true, itemId: editingItem.id });
                         }} 
-                        className="w-full text-start px-4 py-2 text-sm text-red-500 hover:bg-zinc-50 font-medium"
+                        className="w-full text-start px-4 py-2 text-sm text-white font-medium rounded-lg" style={{ backgroundColor: '#b6312c' }}
                       >
                         מחק
                       </button>
@@ -2544,6 +2546,41 @@ function MarketplaceApp() {
               >
                 שנה לשם המעודכן
               </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+          >
+            <h2 className="text-2xl font-bold mb-6 text-center">למחוק?</h2>
+
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                fullWidth 
+                onClick={() => setDeleteConfirmModal(null)}
+              >
+                ביטול
+              </Button>
+              <button
+                className="w-full px-6 py-3 text-white font-bold rounded-xl transition-all active:scale-[0.98]"
+                style={{ backgroundColor: '#b6312c' }}
+                onClick={async () => {
+                  if (deleteConfirmModal.itemId) {
+                    await handleDeleteItem(deleteConfirmModal.itemId);
+                    setDeleteConfirmModal(null);
+                  }
+                }}
+              >
+                מחק
+              </button>
             </div>
           </motion.div>
         </div>
