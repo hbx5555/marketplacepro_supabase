@@ -1116,6 +1116,15 @@ function MarketplaceApp() {
       return;
     }
     try {
+      // Fetch the item to get the correct seller_id
+      const { data: itemData, error: itemError } = await supabase
+        .from('items')
+        .select('seller_id')
+        .eq('id', itemId)
+        .single();
+      
+      if (itemError) throw itemError;
+      
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const { error } = await supabase
         .from('offers')
@@ -1123,7 +1132,7 @@ function MarketplaceApp() {
           id: offerId,
           item_id: itemId,
           buyer_id: currentUser.id,
-          seller_id: selectedItem?.sellerId,
+          seller_id: itemData.seller_id,
           amount,
           status: 'pending',
           created_at: new Date().toISOString()
