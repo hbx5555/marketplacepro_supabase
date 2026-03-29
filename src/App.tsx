@@ -300,6 +300,8 @@ function MarketplaceApp() {
   const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
   const [sellerItemsWithOffers, setSellerItemsWithOffers] = useState<Set<string>>(new Set());
   const [buyerOffersDetails, setBuyerOffersDetails] = useState<Array<any>>([]);
+  const [sellerOffersDetails, setSellerOffersDetails] = useState<Array<any>>([]);
+  const [offersListMode, setOffersListMode] = useState<'buyer' | 'seller'>('buyer');
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [searchingPrice, setSearchingPrice] = useState(false);
   const [priceSearchResults, setPriceSearchResults] = useState<Array<{site: string, price: number, currency: string}>>([]);
@@ -984,12 +986,47 @@ function MarketplaceApp() {
         .from('offers')
         .select('*')
         .eq('seller_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
         setSellerItemsWithOffers(itemIds);
+        
+        // Fetch item details and buyer info for each offer
+        const offersWithDetails = await Promise.all(
+          data.map(async (offer: any) => {
+            const { data: itemData } = await supabase
+              .from('items')
+              .select('*')
+              .eq('id', offer.item_id)
+              .single();
+            
+            const { data: buyerData } = await supabase
+              .from('users')
+              .select('name, photo_url')
+              .eq('id', offer.buyer_id)
+              .single();
+            
+            return {
+              ...offer,
+              item: itemData ? {
+                id: itemData.id,
+                title: itemData.title,
+                photoURL: itemData.photo_url,
+                photoURLs: itemData.photo_urls,
+                price: itemData.price
+              } : null,
+              buyer: buyerData ? {
+                name: buyerData.name,
+                photoURL: buyerData.photo_url
+              } : null
+            };
+          })
+        );
+        
+        setSellerOffersDetails(offersWithDetails);
       }
     } catch (error) {
       console.error('Error fetching seller offers:', error);
@@ -1510,7 +1547,10 @@ function MarketplaceApp() {
                 <span className="text-[10px] font-bold">חיפוש</span>
               </button>
               <button 
-                onClick={() => setView('offers-list')}
+                onClick={() => {
+                  setOffersListMode('buyer');
+                  setView('offers-list');
+                }}
                 className="flex flex-col items-center gap-1 text-zinc-400"
               >
                 <Heart className="w-7 h-7" />
@@ -1696,7 +1736,10 @@ function MarketplaceApp() {
                 <span className="text-[10px] font-bold">חיפוש</span>
               </button>
               <button 
-                onClick={() => setView('offers-list')}
+                onClick={() => {
+                  setOffersListMode('seller');
+                  setView('offers-list');
+                }}
                 className="flex flex-col items-center gap-1 text-zinc-400"
               >
                 <Heart className="w-7 h-7" />
@@ -1724,23 +1767,23 @@ function MarketplaceApp() {
           >
             <header className="p-4 border-b border-divider bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between">
-                <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full">
+                <button onClick={() => setView(offersListMode === 'buyer' ? 'entrance' : 'seller')} className="p-2 hover:bg-zinc-100 rounded-full">
                   <ArrowRight className="w-6 h-6" />
                 </button>
-                <h1 className="text-xl font-bold">ההצעות שלי</h1>
+                <h1 className="text-xl font-bold">{offersListMode === 'buyer' ? 'ההצעות שלי' : 'הצעות שקיבלתי'}</h1>
                 <div className="w-10"></div>
               </div>
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-              {buyerOffersDetails.length === 0 ? (
+              {(offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
                   <Heart className="w-12 h-12 mb-4 opacity-20" />
                   <p className="font-medium">אין הצעות פעילות</p>
-                  <p className="text-sm mt-2">ההצעות שתשלח יופיעו כאן</p>
+                  <p className="text-sm mt-2">{offersListMode === 'buyer' ? 'ההצעות שתשלח יופיעו כאן' : 'הצעות שתקבל יופיעו כאן'}</p>
                 </div>
               ) : (
-                buyerOffersDetails.map((offer) => (
+                (offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails).map((offer) => (
                   <Card key={offer.id} className="p-3">
                     <div className="flex items-center gap-3">
                       {/* Product Image */}
@@ -1761,6 +1804,9 @@ function MarketplaceApp() {
                       {/* Offer Details */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-sm truncate">{offer.item?.title || 'פריט לא זמין'}</h3>
+                        {offersListMode === 'seller' && offer.buyer && (
+                          <p className="text-xs text-zinc-500 mt-0.5">מאת: {offer.buyer.name}</p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-lg font-bold text-success">{offer.amount} ש"ח</span>
                           {offer.item?.price && (
