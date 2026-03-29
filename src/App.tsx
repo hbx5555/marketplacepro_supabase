@@ -954,15 +954,19 @@ function MarketplaceApp() {
   const fetchSellerOffers = async () => {
     if (!currentUser) return;
     try {
+      console.log('Fetching seller offers for user:', currentUser.id);
       const { data, error } = await supabase
         .from('offers')
-        .select('item_id')
+        .select('*')
         .eq('seller_id', currentUser.id)
         .eq('status', 'pending');
 
+      console.log('Seller offers query result:', { data, error });
       if (error) throw error;
       if (data) {
+        console.log('Seller offers data:', data);
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
+        console.log('Seller items with offers:', Array.from(itemIds));
         setSellerItemsWithOffers(itemIds);
       }
     } catch (error) {
