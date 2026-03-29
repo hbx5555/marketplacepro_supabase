@@ -1195,6 +1195,17 @@ function MarketplaceApp() {
       
       if (itemError) throw itemError;
       
+      // Delete any existing pending offers from this buyer for this item
+      const { error: deleteError } = await supabase
+        .from('offers')
+        .delete()
+        .eq('item_id', itemId)
+        .eq('buyer_id', currentUser.id)
+        .eq('status', 'pending');
+      
+      if (deleteError) throw deleteError;
+      
+      // Create the new offer
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const { error } = await supabase
         .from('offers')
