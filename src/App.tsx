@@ -1859,15 +1859,15 @@ function MarketplaceApp() {
             {/* Bottom Navigation */}
             <nav className="fixed bottom-0 start-0 end-0 max-w-md mx-auto bg-white border-t border-divider p-4 flex justify-around items-center z-30">
               <button 
-                onClick={() => setView('entrance')}
+                onClick={() => setView(offersListMode === 'buyer' ? 'entrance' : 'seller')}
                 className="flex flex-col items-center gap-1 text-zinc-400"
               >
                 <Home className="w-7 h-7" />
                 <span className="text-[10px] font-bold">ראשי</span>
               </button>
               <button 
-                onClick={() => setSearchModalOpen(true)}
-                className="flex flex-col items-center gap-1 text-zinc-400"
+                className="flex flex-col items-center gap-1 text-zinc-300 opacity-50 cursor-not-allowed"
+                disabled
               >
                 <Search className="w-7 h-7" />
                 <span className="text-[10px] font-bold">חיפוש</span>
