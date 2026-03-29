@@ -306,6 +306,7 @@ function MarketplaceApp() {
   const [currentSearchingSite, setCurrentSearchingSite] = useState<string>('');
   const [nameMismatchModal, setNameMismatchModal] = useState<{open: boolean, oldName: string, newName: string, userData: any} | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{open: boolean, itemId: string} | null>(null);
+  const [selfOfferErrorModal, setSelfOfferErrorModal] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -2126,7 +2127,7 @@ function MarketplaceApp() {
                 onClick={() => {
                   // Check if user is trying to make an offer on their own item
                   if (currentUser && selectedItem.sellerId === currentUser.id) {
-                    alert('לא ניתן להגיש הצעה לפריטים שפרסמת');
+                    setSelfOfferErrorModal(true);
                     return;
                   }
                   const offersMap = (window as any).__buyerOffersData as Map<string, any>;
@@ -2587,6 +2588,26 @@ function MarketplaceApp() {
                 מחק
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Self Offer Error Modal */}
+      {selfOfferErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+          >
+            <p className="text-lg text-center mb-6 font-medium">לא ניתן להגיש הצעה לפריטים שפרסמת</p>
+            <Button 
+              variant="success" 
+              fullWidth 
+              onClick={() => setSelfOfferErrorModal(false)}
+            >
+              אוקיי
+            </Button>
           </motion.div>
         </div>
       )}
