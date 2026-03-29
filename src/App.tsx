@@ -1524,26 +1524,37 @@ function MarketplaceApp() {
             exit={{ x: -300, opacity: 0 }}
             className="flex-1 flex flex-col h-full"
           >
-            <header className="p-4 border-b border-divider bg-white sticky top-0 z-20">
-              <div className="flex items-center justify-between mb-6">
-                <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full"><ArrowRight className="w-6 h-6" /></button>
-                <h1 className="text-xl font-bold text-zinc-900">הפריטים שלי</h1>
-                <div className="w-10"></div>
+            <div className="flex-1 flex flex-col h-full">
+              {/* DIAGNOSTIC PANEL - TEMPORARY */}
+              <div className="bg-yellow-100 border-2 border-yellow-500 p-3 m-2 rounded text-xs" dir="ltr">
+                <div className="font-bold mb-2">🔧 DIAGNOSTIC INFO:</div>
+                <div>Current User ID: {currentUser?.id}</div>
+                <div>Current User Name: {currentUser?.name}</div>
+                <div className="mt-2 font-bold">Seller Items With Offers ({sellerItemsWithOffers.size}):</div>
+                <div className="bg-white p-2 rounded">{Array.from(sellerItemsWithOffers).join(', ') || 'EMPTY'}</div>
+                <div className="mt-2 font-bold">Buyer Offers ({buyerOffers.size}):</div>
+                <div className="bg-white p-2 rounded">{Array.from(buyerOffers).join(', ') || 'EMPTY'}</div>
               </div>
               
-              <div className="flex items-center gap-4 mb-6">
-                <img src={currentUser?.photoURL || DEFAULT_AVATAR} alt={currentUser?.name || 'User'} className="w-16 h-16 rounded-full object-cover" referrerPolicy="no-referrer" />
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{currentUser?.name || 'משתמש'}</h2>
-                  <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                    <MapPin className="w-4 h-4" /> {currentUser?.location || 'לא צוין'}
-                  </div>
-                  <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {currentUser.rating} (127)
-                  </div>
+              <header className="p-4 border-b border-divider bg-white sticky top-0 z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full"><ArrowRight className="w-6 h-6" /></button>
+                  <h1 className="text-xl font-bold text-zinc-900">הפריטים שלי</h1>
+                  <div className="w-10"></div>
                 </div>
-                <button onClick={() => setView('account-settings')} className="text-amber-600 font-bold text-sm">ערוך פרופיל</button>
-              </div>
+                <div className="flex items-center gap-4">
+                  <img src={currentUser?.photoURL || DEFAULT_AVATAR} alt={currentUser?.name || 'User'} className="w-16 h-16 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold">{currentUser?.name || 'משתמש'}</h2>
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                      <MapPin className="w-4 h-4" /> {currentUser?.location || 'לא צוין'}
+                    </div>
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm mt-1">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {currentUser.rating} (127)
+                    </div>
+                  </div>
+                  <button onClick={() => setView('account-settings')} className="text-amber-600 font-bold text-sm">ערוך פרופיל</button>
+                </div>
 
               <div className="grid grid-cols-3 gap-4 border-t border-divider pt-4">
                 <div className="text-center">
@@ -1561,7 +1572,7 @@ function MarketplaceApp() {
                   <div className="text-[10px] font-bold text-zinc-400 uppercase">ערך כולל</div>
                 </div>
               </div>
-            </header>
+              </header>
 
             <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
               <h3 className="text-lg font-bold mb-4">מודעות פעילות</h3>
@@ -1696,6 +1707,7 @@ function MarketplaceApp() {
                 <span className="text-[10px] font-bold">פרופיל</span>
               </button>
             </nav>
+            </div>
           </motion.div>
         )}
 
