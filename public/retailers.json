@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Yad2",
+    "domain": "yad2.co.il",
+    "enabled": true
+  },
+  {
+    "name": "KSP",
+    "domain": "ksp.co.il",
+    "enabled": true
+  },
+  {
+    "name": "Super-Pharm",
+    "domain": "shop.super-pharm.co.il",
+    "enabled": true
+  },
+  {
+    "name": "ALM",
+    "domain": "alm.co.il",
+    "enabled": true
+  },
+  {
+    "name": "PaynGo",
+    "domain": "payngo.co.il",
+    "enabled": true
+  },
+  {
+    "name": "IKEA Israel",
+    "domain": "ikea.com/il/he",
+    "enabled": true
+  },
+  {
+    "name": "Office Depot",
+    "domain": "officedepot.co.il",
+    "enabled": true
+  },
+  {
+    "name": "Home Center",
+    "domain": "homecenter.co.il",
+    "enabled": true
+  }
+]

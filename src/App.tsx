@@ -305,6 +305,10 @@ function MarketplaceApp() {
   const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
   const [sellerItemsWithOffers, setSellerItemsWithOffers] = useState<Set<string>>(new Set());
   const [isLoadingItems, setIsLoadingItems] = useState(true);
+  const [searchingPrice, setSearchingPrice] = useState(false);
+  const [priceSearchResults, setPriceSearchResults] = useState<Array<{site: string, price: number, currency: string}>>([]);
+  const [searchOptimizedText, setSearchOptimizedText] = useState<{brand: string, modelName: string, searchQuery: string} | null>(null);
+  const [currentSearchingSite, setCurrentSearchingSite] = useState<string>('');
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -407,6 +411,29 @@ function MarketplaceApp() {
         return null;
       });
 
+      const searchTextPromise = ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType,
+              },
+            },
+            {
+              text: 'Analyze this image and identify the exact product. Extract the following in JSON format: {"brand": "brand name", "modelName": "model name", "modelNumber": "model number if visible", "searchQuery": "optimized search query for Google Shopping"}. If you cannot identify specific details, provide your best estimate.',
+            },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+        },
+      }).catch(err => {
+        console.error("Search text generation failed:", err);
+        return null;
+      });
+
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
         contents: {
@@ -437,6 +464,16 @@ function MarketplaceApp() {
         const titleEl = document.getElementById('item-title') as HTMLInputElement;
         if (titleEl) {
           titleEl.value = titleResponse.text.trim();
+        }
+      }
+
+      const searchTextResponse = await searchTextPromise;
+      if (searchTextResponse && searchTextResponse.text) {
+        try {
+          const searchData = JSON.parse(searchTextResponse.text);
+          setSearchOptimizedText(searchData);
+        } catch (err) {
+          console.error("Failed to parse search text JSON:", err);
         }
       }
 
@@ -509,6 +546,86 @@ function MarketplaceApp() {
       alert(`שיפור ה-AI נכשל.\n\nפרטים:\n${errorMsg.substring(0, 500)}`);
     } finally {
       setIsEnhancing(false);
+    }
+  };
+
+  const handlePriceSearch = async () => {
+    if (!searchOptimizedText) {
+      alert('אנא השתמש תחילה בשיפור AI כדי לזהות את המוצר');
+      return;
+    }
+
+    setSearchingPrice(true);
+    setPriceSearchResults([]);
+    
+    try {
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        throw new Error("מפתח API לא נמצא או שאינו חוקי. אנא ודא שהמפתח מוגדר בסביבה.");
+      }
+
+      // Load retailers configuration
+      const retailersResponse = await fetch('/retailers.json');
+      const retailers = await retailersResponse.json();
+      const enabledRetailers = retailers.filter((r: any) => r.enabled);
+      
+      // Build search query with site operators
+      const targetSites = enabledRetailers.map((r: any) => `site:${r.domain}`);
+      const siteQuery = targetSites.join(' OR ');
+      const searchQuery = `"${searchOptimizedText.searchQuery}" (${siteQuery})`;
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Simulate searching through sites for UI feedback
+      for (const retailer of enabledRetailers) {
+        setCurrentSearchingSite(retailer.name);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            {
+              text: `Search for this product and extract prices from Israeli retail websites: ${searchQuery}. 
+              Return a JSON array with format: [{"site": "site name", "price": number, "currency": "ILS"}].
+              Only include results with actual prices found.`
+            }
+          ],
+        },
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+        },
+      });
+
+      const results = JSON.parse(response.text || '[]');
+      setPriceSearchResults(results);
+
+      // Update price input with range or "no results"
+      const priceInput = document.getElementById('item-price') as HTMLInputElement;
+      if (priceInput) {
+        if (results.length > 0) {
+          const prices = results.map((r: any) => r.price).sort((a: number, b: number) => a - b);
+          const minPrice = Math.floor(prices[0]);
+          const maxPrice = Math.ceil(prices[prices.length - 1]);
+          priceInput.value = minPrice === maxPrice ? `${minPrice}` : `${minPrice}-${maxPrice}`;
+        } else {
+          priceInput.value = 'לא נמצא';
+        }
+      }
+
+    } catch (error: any) {
+      console.error('Price search failed:', error);
+      alert(`חיפוש מחיר נכשל.\n\nפרטים:\n${error.message || error}`);
+      
+      const priceInput = document.getElementById('item-price') as HTMLInputElement;
+      if (priceInput) {
+        priceInput.value = 'לא נמצא';
+      }
+    } finally {
+      setSearchingPrice(false);
+      setCurrentSearchingSite('');
     }
   };
 
@@ -1392,15 +1509,29 @@ function MarketplaceApp() {
 
                 <div>
                   <label className="block text-sm font-bold mb-1.5">מחיר</label>
-                  <div className="relative">
-                    <span className="absolute end-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">ש"ח</span>
-                    <input 
-                      type="number" 
-                      placeholder="0.00"
-                      className="w-full bg-zinc-50 border border-divider rounded-xl ps-4 pe-12 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      id="item-price"
-                      defaultValue={editingItem?.price || ''}
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute end-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">ש"ח</span>
+                      <input 
+                        type="text" 
+                        placeholder="0.00"
+                        className="w-full bg-zinc-50 border border-divider rounded-xl ps-4 pe-12 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        id="item-price"
+                        defaultValue={editingItem?.price || ''}
+                      />
+                    </div>
+                    <button
+                      onClick={handlePriceSearch}
+                      disabled={searchingPrice || !searchOptimizedText}
+                      className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                      title="חיפוש מחיר"
+                    >
+                      {searchingPrice ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Search className="w-5 h-5" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -1929,6 +2060,32 @@ function MarketplaceApp() {
             <Button variant="success" fullWidth onClick={() => setOfferSuccessModalOpen(false)}>
               אישור
             </Button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Price Search Progress Modal */}
+      {searchingPrice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">מחפש מחירים...</h2>
+            <p className="text-zinc-600 mb-4">
+              {currentSearchingSite ? `בודק: ${currentSearchingSite}` : 'מאתר מוצר...'}
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {priceSearchResults.map((result, idx) => (
+                <div key={idx} className="px-3 py-1 bg-success/20 text-zinc-700 rounded-full text-sm">
+                  {result.site}: ₪{result.price}
+                </div>
+              ))}
+            </div>
           </motion.div>
         </div>
       )}

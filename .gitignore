@@ -7,3 +7,6 @@ coverage/
 .env*
 !.env.example
 *.pdf
+
+# Local Netlify folder
+.netlify
