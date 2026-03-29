@@ -929,23 +929,17 @@ function MarketplaceApp() {
   };
 
   const fetchBuyerOffers = async () => {
-    if (!currentUser) {
-      console.log('❌ fetchBuyerOffers: No current user');
-      return;
-    }
+    if (!currentUser) return;
     try {
-      console.log('🔍 Fetching BUYER offers for user:', currentUser.id, currentUser.name);
       const { data, error } = await supabase
         .from('offers')
         .select('*')
         .eq('buyer_id', currentUser.id)
         .eq('status', 'pending');
 
-      console.log('📊 BUYER offers query result:', { data, error });
       if (error) throw error;
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
-        console.log('💙 BUYER offers - Item IDs with offers:', Array.from(itemIds));
         setBuyerOffers(itemIds);
         
         // Store full offer data for later use
@@ -953,40 +947,32 @@ function MarketplaceApp() {
         (window as any).__buyerOffersData = offersMap;
       }
     } catch (error) {
-      console.error('❌ Error fetching buyer offers:', error);
+      console.error('Error fetching buyer offers:', error);
     }
   };
 
   const fetchSellerOffers = async () => {
-    if (!currentUser) {
-      console.log('❌ fetchSellerOffers: No current user');
-      return;
-    }
+    if (!currentUser) return;
     try {
-      console.log('🔍 Fetching SELLER offers for user:', currentUser.id, currentUser.name);
       const { data, error } = await supabase
         .from('offers')
         .select('*')
         .eq('seller_id', currentUser.id)
         .eq('status', 'pending');
 
-      console.log('📊 SELLER offers query result:', { data, error });
       if (error) throw error;
       if (data) {
-        console.log('📦 SELLER offers full data:', data);
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
-        console.log('🖤 SELLER offers - Item IDs with offers:', Array.from(itemIds));
         setSellerItemsWithOffers(itemIds);
       }
     } catch (error) {
-      console.error('❌ Error fetching seller offers:', error);
+      console.error('Error fetching seller offers:', error);
     }
   };
 
   useEffect(() => {
     if (!currentUser) return;
     
-    console.log('🔄 Setting up subscriptions for user:', currentUser.id);
     fetchItems();
     fetchBuyerOffers();
     fetchSellerOffers();
@@ -995,10 +981,7 @@ function MarketplaceApp() {
       .channel('items_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'items' },
-        () => { 
-          console.log('📢 Items changed - refetching...');
-          fetchItems(); 
-        }
+        () => { fetchItems(); }
       )
       .subscribe();
 
@@ -1007,7 +990,6 @@ function MarketplaceApp() {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'offers' },
         () => { 
-          console.log('📢 Offers changed - refetching buyer and seller offers...');
           fetchBuyerOffers();
           fetchSellerOffers();
         }
@@ -1015,7 +997,6 @@ function MarketplaceApp() {
       .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from channels');
       itemsSubscription.unsubscribe();
       offersSubscription.unsubscribe();
     };
@@ -1143,26 +1124,19 @@ function MarketplaceApp() {
       if (itemError) throw itemError;
       
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const offerData = {
-        id: offerId,
-        item_id: itemId,
-        buyer_id: currentUser.id,
-        seller_id: itemData.seller_id,
-        amount,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-      
-      console.log('✨ Creating NEW offer:', offerData);
       const { error } = await supabase
         .from('offers')
-        .insert([offerData]);
+        .insert([{
+          id: offerId,
+          item_id: itemId,
+          buyer_id: currentUser.id,
+          seller_id: itemData.seller_id,
+          amount,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        }]);
       
-      if (error) {
-        console.error('❌ Error creating offer:', error);
-        throw error;
-      }
-      console.log('✅ Offer created successfully!');
+      if (error) throw error;
       setOfferModalOpen(false);
       setOfferWasCanceled(false);
       setOfferSuccessModalOpen(true);
@@ -1533,25 +1507,6 @@ function MarketplaceApp() {
             className="flex-1 flex flex-col h-full"
           >
             <div className="flex-1 flex flex-col h-full">
-              {/* DIAGNOSTIC PANEL - TEMPORARY */}
-              <div className="bg-yellow-100 border-2 border-yellow-500 p-3 m-2 rounded text-xs" dir="ltr">
-                <div className="font-bold mb-2">🔧 DIAGNOSTIC INFO:</div>
-                <div>Current User ID: {currentUser?.id}</div>
-                <div>Current User Name: {currentUser?.name}</div>
-                <div className="mt-2 font-bold">My Items ({items.filter(i => i.sellerId === currentUser?.id).length}):</div>
-                <div className="bg-white p-2 rounded max-h-20 overflow-auto">
-                  {items.filter(i => i.sellerId === currentUser?.id).map(item => (
-                    <div key={item.id} className={sellerItemsWithOffers.has(item.id) ? 'text-green-600 font-bold' : ''}>
-                      {item.title} ({item.id.slice(-6)}) {sellerItemsWithOffers.has(item.id) ? '❤️' : ''}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 font-bold">Seller Items With Offers ({sellerItemsWithOffers.size}):</div>
-                <div className="bg-white p-2 rounded">{Array.from(sellerItemsWithOffers).join(', ') || 'EMPTY'}</div>
-                <div className="mt-2 font-bold">Buyer Offers ({buyerOffers.size}):</div>
-                <div className="bg-white p-2 rounded">{Array.from(buyerOffers).join(', ') || 'EMPTY'}</div>
-              </div>
-              
               <header className="p-4 border-b border-divider bg-white sticky top-0 z-10">
                 <div className="flex items-center justify-between mb-4">
                   <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full"><ArrowRight className="w-6 h-6" /></button>
