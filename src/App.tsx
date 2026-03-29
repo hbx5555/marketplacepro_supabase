@@ -943,12 +943,21 @@ function MarketplaceApp() {
 
       if (error) throw error;
       if (data) {
-        const itemIds = new Set(data.map((offer: any) => offer.item_id));
+        // Group by item_id and keep only the most recent offer per item
+        const latestOffersMap = new Map();
+        data.forEach((offer: any) => {
+          if (!latestOffersMap.has(offer.item_id)) {
+            latestOffersMap.set(offer.item_id, offer);
+          }
+        });
+        
+        const latestOffers = Array.from(latestOffersMap.values());
+        const itemIds = new Set(latestOffers.map((offer: any) => offer.item_id));
         setBuyerOffers(itemIds);
         
-        // Fetch item details for each offer
+        // Fetch item details for each latest offer
         const offersWithItems = await Promise.all(
-          data.map(async (offer: any) => {
+          latestOffers.map(async (offer: any) => {
             const { data: itemData } = await supabase
               .from('items')
               .select('*')
@@ -971,7 +980,7 @@ function MarketplaceApp() {
         setBuyerOffersDetails(offersWithItems);
         
         // Store full offer data for later use
-        const offersMap = new Map(data.map((offer: any) => [offer.item_id, offer]));
+        const offersMap = new Map(latestOffers.map((offer: any) => [offer.item_id, offer]));
         (window as any).__buyerOffersData = offersMap;
       }
     } catch (error) {
