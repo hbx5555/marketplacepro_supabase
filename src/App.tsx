@@ -576,11 +576,8 @@ function MarketplaceApp() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Simulate searching through sites for UI feedback
-      for (const retailer of enabledRetailers) {
-        setCurrentSearchingSite(retailer.name);
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
+      // Show searching message (no site cycling)
+      setCurrentSearchingSite('מחפש...');
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -601,6 +598,11 @@ function MarketplaceApp() {
 
       const results = JSON.parse(response.text || '[]');
       setPriceSearchResults(results);
+      
+      // Show last site with match if any results found
+      if (results.length > 0) {
+        setCurrentSearchingSite(results[results.length - 1].site);
+      }
 
       // Update price input with range or "no results"
       const priceInput = document.getElementById('item-price') as HTMLInputElement;
@@ -2077,15 +2079,20 @@ function MarketplaceApp() {
             </div>
             <h2 className="text-xl font-bold mb-2">מחפש מחירים...</h2>
             <p className="text-zinc-600 mb-4">
-              {currentSearchingSite ? `בודק: ${currentSearchingSite}` : 'מאתר מוצר...'}
+              {currentSearchingSite}
             </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {priceSearchResults.map((result, idx) => (
-                <div key={idx} className="px-3 py-1 bg-success/20 text-zinc-700 rounded-full text-sm">
-                  {result.site}: ₪{result.price}
+            {priceSearchResults.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-zinc-700 mb-2">נמצאו מחירים באתרים:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {priceSearchResults.map((result, idx) => (
+                    <div key={idx} className="px-3 py-1 bg-success/20 text-zinc-700 rounded-full text-sm font-medium">
+                      {result.site}: ₪{result.price}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
