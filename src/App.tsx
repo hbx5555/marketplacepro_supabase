@@ -299,6 +299,7 @@ function MarketplaceApp() {
   const [searchTerm, setSearchTerm] = useState('');
   const [buyerOffers, setBuyerOffers] = useState<Set<string>>(new Set());
   const [sellerItemsWithOffers, setSellerItemsWithOffers] = useState<Set<string>>(new Set());
+  const [buyerOffersDetails, setBuyerOffersDetails] = useState<Array<any>>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [searchingPrice, setSearchingPrice] = useState(false);
   const [priceSearchResults, setPriceSearchResults] = useState<Array<{site: string, price: number, currency: string}>>([]);
@@ -935,12 +936,37 @@ function MarketplaceApp() {
         .from('offers')
         .select('*')
         .eq('buyer_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
         setBuyerOffers(itemIds);
+        
+        // Fetch item details for each offer
+        const offersWithItems = await Promise.all(
+          data.map(async (offer: any) => {
+            const { data: itemData } = await supabase
+              .from('items')
+              .select('*')
+              .eq('id', offer.item_id)
+              .single();
+            
+            return {
+              ...offer,
+              item: itemData ? {
+                id: itemData.id,
+                title: itemData.title,
+                photoURL: itemData.photo_url,
+                photoURLs: itemData.photo_urls,
+                price: itemData.price
+              } : null
+            };
+          })
+        );
+        
+        setBuyerOffersDetails(offersWithItems);
         
         // Store full offer data for later use
         const offersMap = new Map(data.map((offer: any) => [offer.item_id, offer]));
@@ -1483,9 +1509,12 @@ function MarketplaceApp() {
                 <Search className="w-7 h-7" />
                 <span className="text-[10px] font-bold">חיפוש</span>
               </button>
-              <button className="flex flex-col items-center gap-1 text-zinc-400">
-                <MessageCircle className="w-7 h-7" />
-                <span className="text-[10px] font-bold">הודעות</span>
+              <button 
+                onClick={() => setView('offers-list')}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <Heart className="w-7 h-7" />
+                <span className="text-[10px] font-bold">הצעות</span>
               </button>
               <button 
                 onClick={() => setView('settings')}
@@ -1666,9 +1695,12 @@ function MarketplaceApp() {
                 <Search className="w-7 h-7" />
                 <span className="text-[10px] font-bold">חיפוש</span>
               </button>
-              <button className="flex flex-col items-center gap-1 text-zinc-400">
-                <MessageCircle className="w-7 h-7" />
-                <span className="text-[10px] font-bold">הודעות</span>
+              <button 
+                onClick={() => setView('offers-list')}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <Heart className="w-7 h-7" />
+                <span className="text-[10px] font-bold">הצעות</span>
               </button>
               <button 
                 onClick={() => setView('settings')}
@@ -1679,6 +1711,113 @@ function MarketplaceApp() {
               </button>
             </nav>
             </div>
+          </motion.div>
+        )}
+
+        {view === 'offers-list' && (
+          <motion.div 
+            key="offers-list"
+            initial={{ x: 300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            className="flex-1 flex flex-col h-full"
+          >
+            <header className="p-4 border-b border-divider bg-white sticky top-0 z-10">
+              <div className="flex items-center justify-between">
+                <button onClick={() => setView('entrance')} className="p-2 hover:bg-zinc-100 rounded-full">
+                  <ArrowRight className="w-6 h-6" />
+                </button>
+                <h1 className="text-xl font-bold">ההצעות שלי</h1>
+                <div className="w-10"></div>
+              </div>
+            </header>
+
+            <main className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
+              {buyerOffersDetails.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                  <Heart className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="font-medium">אין הצעות פעילות</p>
+                  <p className="text-sm mt-2">ההצעות שתשלח יופיעו כאן</p>
+                </div>
+              ) : (
+                buyerOffersDetails.map((offer) => (
+                  <Card key={offer.id} className="p-3">
+                    <div className="flex items-center gap-3">
+                      {/* Product Image */}
+                      <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-100">
+                        {offer.item?.photoURL ? (
+                          <img 
+                            src={offer.item.photoURLs?.[0] || offer.item.photoURL} 
+                            alt={offer.item.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingBag className="w-8 h-8 text-zinc-300" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Offer Details */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm truncate">{offer.item?.title || 'פריט לא זמין'}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-lg font-bold text-success">{offer.amount} ש"ח</span>
+                          {offer.item?.price && (
+                            <span className="text-xs text-zinc-400 line-through">{offer.item.price} ש"ח</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-zinc-400 mt-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{new Date(offer.created_at).toLocaleDateString('he-IL', { 
+                            day: 'numeric', 
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="flex-shrink-0">
+                        <div className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">
+                          ממתין
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </main>
+
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 start-0 end-0 max-w-md mx-auto bg-white border-t border-divider p-4 flex justify-around items-center z-30">
+              <button 
+                onClick={() => setView('entrance')}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <Home className="w-7 h-7" />
+                <span className="text-[10px] font-bold">ראשי</span>
+              </button>
+              <button 
+                onClick={() => setSearchModalOpen(true)}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <Search className="w-7 h-7" />
+                <span className="text-[10px] font-bold">חיפוש</span>
+              </button>
+              <button className="flex flex-col items-center gap-1 text-primary">
+                <Heart className="w-7 h-7 fill-current" />
+                <span className="text-[10px] font-bold">הצעות</span>
+              </button>
+              <button 
+                onClick={() => setView('settings')}
+                className="flex flex-col items-center gap-1 text-zinc-400"
+              >
+                <UserIcon className="w-7 h-7" />
+                <span className="text-[10px] font-bold">פרופיל</span>
+              </button>
+            </nav>
           </motion.div>
         )}
 
