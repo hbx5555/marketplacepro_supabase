@@ -1530,6 +1530,14 @@ function MarketplaceApp() {
                 <div className="font-bold mb-2">🔧 DIAGNOSTIC INFO:</div>
                 <div>Current User ID: {currentUser?.id}</div>
                 <div>Current User Name: {currentUser?.name}</div>
+                <div className="mt-2 font-bold">My Items ({items.filter(i => i.sellerId === currentUser?.id).length}):</div>
+                <div className="bg-white p-2 rounded max-h-20 overflow-auto">
+                  {items.filter(i => i.sellerId === currentUser?.id).map(item => (
+                    <div key={item.id} className={sellerItemsWithOffers.has(item.id) ? 'text-green-600 font-bold' : ''}>
+                      {item.title} ({item.id.slice(-6)}) {sellerItemsWithOffers.has(item.id) ? '❤️' : ''}
+                    </div>
+                  ))}
+                </div>
                 <div className="mt-2 font-bold">Seller Items With Offers ({sellerItemsWithOffers.size}):</div>
                 <div className="bg-white p-2 rounded">{Array.from(sellerItemsWithOffers).join(', ') || 'EMPTY'}</div>
                 <div className="mt-2 font-bold">Buyer Offers ({buyerOffers.size}):</div>
