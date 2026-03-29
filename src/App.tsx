@@ -2180,6 +2180,7 @@ function MarketplaceApp() {
                   .update({ name: currentUser.name, photo_url: currentUser.photoURL })
                   .eq('id', currentUser.id);
                 await updateSellerDetails(currentUser.id, currentUser.name, currentUser.photoURL);
+                await fetchItems(); // Refresh items to show updated photo
                 setView('settings');
               }}>שמור שינויים</Button>
             </main>
