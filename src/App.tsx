@@ -938,7 +938,6 @@ function MarketplaceApp() {
         .from('offers')
         .select('*')
         .eq('buyer_id', currentUser.id)
-        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -995,7 +994,6 @@ function MarketplaceApp() {
         .from('offers')
         .select('*')
         .eq('seller_id', currentUser.id)
-        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1846,8 +1844,14 @@ function MarketplaceApp() {
 
                       {/* Status Badge */}
                       <div className="flex-shrink-0">
-                        <div className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">
-                          ממתין
+                        <div className={`text-xs font-bold px-2 py-1 rounded-full ${
+                          offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          offer.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {offer.status === 'accepted' ? 'התקבל' :
+                           offer.status === 'rejected' ? 'נדחה' :
+                           'ממתין'}
                         </div>
                       </div>
                     </div>
