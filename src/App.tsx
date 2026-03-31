@@ -310,6 +310,7 @@ function MarketplaceApp() {
   const [nameMismatchModal, setNameMismatchModal] = useState<{open: boolean, oldName: string, newName: string, userData: any} | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{open: boolean, itemId: string} | null>(null);
   const [selfOfferErrorModal, setSelfOfferErrorModal] = useState(false);
+  const [offerActionModal, setOfferActionModal] = useState<{open: boolean, offer: any} | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -560,6 +561,42 @@ function MarketplaceApp() {
     setCurrentUser(null);
     setIsAuthenticated(false);
     setView('auth');
+  };
+
+  const handleAcceptOffer = async (offerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'accepted' })
+        .eq('id', offerId);
+      
+      if (error) throw error;
+      
+      setOfferActionModal(null);
+      fetchSellerOffers();
+      fetchBuyerOffers();
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      alert('שגיאה בקבלת ההצעה. נסה שוב.');
+    }
+  };
+
+  const handleRejectOffer = async (offerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'rejected' })
+        .eq('id', offerId);
+      
+      if (error) throw error;
+      
+      setOfferActionModal(null);
+      fetchSellerOffers();
+      fetchBuyerOffers();
+    } catch (error) {
+      console.error('Error rejecting offer:', error);
+      alert('שגיאה בדחיית ההצעה. נסה שוב.');
+    }
   };
 
   const CONDITION_COLORS: Record<string, string> = {
@@ -1802,7 +1839,15 @@ function MarketplaceApp() {
                 </div>
               ) : (
                 (offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails).map((offer) => (
-                  <Card key={offer.id} className="p-3">
+                  <Card 
+                    key={offer.id} 
+                    className={`p-3 ${offersListMode === 'seller' && offer.status === 'pending' ? 'cursor-pointer hover:bg-zinc-50 active:bg-zinc-100' : ''}`}
+                    onClick={() => {
+                      if (offersListMode === 'seller' && offer.status === 'pending') {
+                        setOfferActionModal({ open: true, offer });
+                      }
+                    }}
+                  >
                     <div className="flex items-center gap-3">
                       {/* Product Image */}
                       <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-100">
@@ -2841,6 +2886,99 @@ function MarketplaceApp() {
             >
               אוקיי
             </Button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Offer Action Modal (Accept/Reject) */}
+      {offerActionModal?.open && offerActionModal.offer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl relative"
+          >
+            {/* Close button - RTL position (upper left) */}
+            <button
+              onClick={() => setOfferActionModal(null)}
+              className="absolute left-4 top-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-zinc-600" />
+            </button>
+
+            {/* Offer Details */}
+            <div className="mb-6 mt-2">
+              <h2 className="text-xl font-bold text-center mb-4">הצעה חדשה</h2>
+              
+              {/* Item Image */}
+              <div className="w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-zinc-100">
+                {offerActionModal.offer.item?.photoURL ? (
+                  <img 
+                    src={offerActionModal.offer.item.photoURLs?.[0] || offerActionModal.offer.item.photoURL} 
+                    alt={offerActionModal.offer.item.title} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ShoppingBag className="w-10 h-10 text-zinc-300" />
+                  </div>
+                )}
+              </div>
+
+              {/* Item Name */}
+              <h3 className="text-lg font-bold text-center mb-2">
+                {offerActionModal.offer.item?.title || 'פריט לא זמין'}
+              </h3>
+
+              {/* Buyer Name */}
+              {offerActionModal.offer.buyer && (
+                <p className="text-sm text-zinc-500 text-center mb-4">
+                  מאת: {offerActionModal.offer.buyer.name}
+                </p>
+              )}
+
+              {/* Price Comparison */}
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <span className="text-2xl font-bold text-success">
+                  {offerActionModal.offer.amount} ש"ח
+                </span>
+                {offerActionModal.offer.item?.price && (
+                  <span className="text-lg text-zinc-400 line-through">
+                    {offerActionModal.offer.item.price} ש"ח
+                  </span>
+                )}
+              </div>
+
+              {/* Date */}
+              <p className="text-xs text-zinc-400 text-center">
+                {new Date(offerActionModal.offer.created_at).toLocaleDateString('he-IL', { 
+                  day: 'numeric', 
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button 
+                variant="success" 
+                fullWidth
+                onClick={() => handleAcceptOffer(offerActionModal.offer.id)}
+              >
+                קבל הצעה
+              </Button>
+              <Button 
+                variant="outline" 
+                fullWidth
+                onClick={() => handleRejectOffer(offerActionModal.offer.id)}
+                className="border-red-500 text-red-500 hover:bg-red-50"
+              >
+                דחה הצעה
+              </Button>
+            </div>
           </motion.div>
         </div>
       )}
