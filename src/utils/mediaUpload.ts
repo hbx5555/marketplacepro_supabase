@@ -405,6 +405,12 @@ export async function deleteItemMedia(mediaId: string): Promise<void> {
  * Delete all media for an item
  */
 export async function deleteAllItemMedia(itemId: string): Promise<void> {
+  // First, clear the primary_media_id reference in items table
+  await supabase
+    .from('items')
+    .update({ primary_media_id: null })
+    .eq('id', itemId);
+  
   const media = await fetchItemMedia(itemId);
   
   for (const m of media) {
