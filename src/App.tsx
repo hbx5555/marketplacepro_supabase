@@ -1766,8 +1766,18 @@ function MarketplaceApp() {
                     onClick={async () => {
                       setEditingItem(item);
                       // Load existing media when editing
-                      // TODO: Fetch media from item_media table
-                      setMediaFiles([]);
+                      if (item.media && item.media.length > 0) {
+                        // Convert media records to MediaFile objects with preview URLs
+                        const mediaFiles = item.media.map((m: any) => ({
+                          file: null as any, // No file object for existing media
+                          type: m.media_type as 'image' | 'video',
+                          preview: m.thumbnail_url || m.public_url,
+                          existingId: m.id // Track existing media ID
+                        }));
+                        setMediaFiles(mediaFiles);
+                      } else {
+                        setMediaFiles([]);
+                      }
                       setSelectedCondition(item.condition || 'כמו חדש');
                       setView('add-item');
                     }}
@@ -2369,12 +2379,7 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'item-details' && selectedItem && (() => {
-          console.log('Item Details - selectedItem:', selectedItem);
-          console.log('Item Details - photoURL:', selectedItem.photoURL);
-          console.log('Item Details - photoURLs:', selectedItem.photoURLs);
-          return true;
-        })() && (
+        {view === 'item-details' && selectedItem && (
           <motion.div 
             key="item-details"
             initial={{ x: 300, opacity: 0 }}
