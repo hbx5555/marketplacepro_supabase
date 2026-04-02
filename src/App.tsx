@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, mockAuth, uploadImageFromBase64 } from './supabase';
-import { saveItemMedia, fetchItemMedia, deleteAllItemMedia, MediaFile } from './utils/mediaUpload';
+import { saveItemMedia, fetchItemMedia, deleteAllItemMedia, deleteItemMedia, MediaFile } from './utils/mediaUpload';
 import imageCompression from 'browser-image-compression';
 import { GoogleGenAI } from '@google/genai';
 // ... rest of imports
@@ -616,6 +616,12 @@ function MarketplaceApp() {
       return;
     }
 
+    // Check if last media is existing (no File object)
+    if (!lastMedia.file) {
+      alert('לא ניתן לשפר תמונה קיימת. ניתן רק לשפר תמונות חדשות שצולמו עכשיו.');
+      return;
+    }
+
     setIsEnhancing(true);
     try {
       const apiKey = await getApiKey();
@@ -1191,8 +1197,27 @@ function MarketplaceApp() {
         // Update existing item
         itemId = editingItem.id;
         
-        // Delete old media if replacing
-        if (mediaFiles.length > 0) {
+        // Get IDs of existing media to keep
+        const existingMediaIds = mediaFiles
+          .filter(m => m.existingId)
+          .map(m => m.existingId);
+        
+        // Delete media not in the keep list
+        if (existingMediaIds.length > 0) {
+          const { data: allMedia } = await supabase
+            .from('item_media')
+            .select('id')
+            .eq('item_id', itemId);
+          
+          if (allMedia) {
+            for (const media of allMedia) {
+              if (!existingMediaIds.includes(media.id)) {
+                await deleteItemMedia(media.id);
+              }
+            }
+          }
+        } else {
+          // No existing media to keep, delete all
           await deleteAllItemMedia(itemId);
         }
         
@@ -1233,9 +1258,10 @@ function MarketplaceApp() {
         if (error) throw error;
       }
       
-      // Upload media files to storage
-      if (mediaFiles.length > 0) {
-        const uploadedMedia = await saveItemMedia(itemId, mediaFiles, currentUser.id);
+      // Upload only NEW media files (those with actual File objects)
+      const newMediaFiles = mediaFiles.filter(m => m.file !== null);
+      if (newMediaFiles.length > 0) {
+        const uploadedMedia = await saveItemMedia(itemId, newMediaFiles, currentUser.id);
         
         // Set primary media ID
         if (uploadedMedia.length > 0) {
