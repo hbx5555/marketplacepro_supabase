@@ -1239,11 +1239,18 @@ function MarketplaceApp() {
       if (mediaFiles.length > 0) {
         const uploadedMedia = await saveItemMedia(itemId, mediaFiles, currentUser.id);
         
-        // Set primary media (first one)
+        // Set primary media and photo URLs for backward compatibility
         if (uploadedMedia.length > 0) {
+          const photoURL = uploadedMedia[0].thumbnailUrl || uploadedMedia[0].publicUrl;
+          const photoURLs = uploadedMedia.map(m => m.thumbnailUrl || m.publicUrl);
+          
           await supabase
             .from('items')
-            .update({ primary_media_id: uploadedMedia[0].id })
+            .update({ 
+              primary_media_id: uploadedMedia[0].id,
+              photo_url: photoURL,
+              photo_urls: photoURLs
+            })
             .eq('id', itemId);
         }
       }
@@ -2396,8 +2403,12 @@ function MarketplaceApp() {
                       <img key={idx} src={img} alt={`${selectedItem.title} - ${idx + 1}`} className="w-full h-full object-cover flex-shrink-0 snap-center" />
                     ))}
                   </div>
-                ) : (
+                ) : selectedItem.photoURL ? (
                   <img src={selectedItem.photoURL} alt={selectedItem.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-zinc-200 flex items-center justify-center">
+                    <p className="text-zinc-400 text-sm">אין תמונה</p>
+                  </div>
                 )}
                 <button className="absolute top-4 end-4 w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-sm">
                   <Heart 
