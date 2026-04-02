@@ -2378,7 +2378,12 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'item-details' && selectedItem && (
+        {view === 'item-details' && selectedItem && (() => {
+          console.log('Item Details - selectedItem:', selectedItem);
+          console.log('Item Details - photoURL:', selectedItem.photoURL);
+          console.log('Item Details - photoURLs:', selectedItem.photoURLs);
+          return true;
+        })() && (
           <motion.div 
             key="item-details"
             initial={{ x: 300, opacity: 0 }}
