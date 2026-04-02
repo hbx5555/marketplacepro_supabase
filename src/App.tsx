@@ -985,16 +985,14 @@ function MarketplaceApp() {
             .eq('item_id', item.id)
             .order('display_order', { ascending: true });
           
-          // Use new media if available, fallback to old photo_url/photo_urls
-          let photoURL = item.photo_url;
-          let photoURLs = item.photo_urls;
+          // Build photoURL and photoURLs from media data
+          const photoURL = mediaData && mediaData.length > 0 
+            ? (mediaData[0].thumbnail_url || mediaData[0].public_url)
+            : 'https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה';
           
-          if (mediaData && mediaData.length > 0) {
-            // Use first media as primary photo
-            photoURL = mediaData[0].thumbnail_url || mediaData[0].public_url;
-            // Map all media URLs
-            photoURLs = mediaData.map(m => m.thumbnail_url || m.public_url);
-          }
+          const photoURLs = mediaData && mediaData.length > 0
+            ? mediaData.map(m => m.thumbnail_url || m.public_url)
+            : ['https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה'];
           
           return {
             id: item.id,
@@ -1239,18 +1237,11 @@ function MarketplaceApp() {
       if (mediaFiles.length > 0) {
         const uploadedMedia = await saveItemMedia(itemId, mediaFiles, currentUser.id);
         
-        // Set primary media and photo URLs for backward compatibility
+        // Set primary media ID
         if (uploadedMedia.length > 0) {
-          const photoURL = uploadedMedia[0].thumbnailUrl || uploadedMedia[0].publicUrl;
-          const photoURLs = uploadedMedia.map(m => m.thumbnailUrl || m.publicUrl);
-          
           await supabase
             .from('items')
-            .update({ 
-              primary_media_id: uploadedMedia[0].id,
-              photo_url: photoURL,
-              photo_urls: photoURLs
-            })
+            .update({ primary_media_id: uploadedMedia[0].id })
             .eq('id', itemId);
         }
       }
