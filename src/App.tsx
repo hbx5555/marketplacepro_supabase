@@ -775,10 +775,13 @@ function MarketplaceApp() {
             const previewUrl = URL.createObjectURL(compressedFile);
             setMediaFiles(prev => {
               const newMedia = [...prev];
-              newMedia[newMedia.length - 1] = {
+              const lastIndex = newMedia.length - 1;
+              const existingId = newMedia[lastIndex].existingId; // Preserve existingId if present
+              newMedia[lastIndex] = {
                 file: compressedFile,
                 type: 'image',
-                preview: previewUrl
+                preview: previewUrl,
+                existingId: existingId // Keep the existingId so it updates instead of deletes
               };
               return newMedia;
             });
@@ -790,10 +793,13 @@ function MarketplaceApp() {
             const previewUrl = URL.createObjectURL(file);
             setMediaFiles(prev => {
               const newMedia = [...prev];
-              newMedia[newMedia.length - 1] = {
+              const lastIndex = newMedia.length - 1;
+              const existingId = newMedia[lastIndex].existingId; // Preserve existingId if present
+              newMedia[lastIndex] = {
                 file: file,
                 type: 'image',
-                preview: previewUrl
+                preview: previewUrl,
+                existingId: existingId // Keep the existingId so it updates instead of deletes
               };
               return newMedia;
             });
