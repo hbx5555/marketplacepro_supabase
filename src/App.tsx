@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, mockAuth, uploadImageFromBase64 } from './supabase';
-import { User, Item } from './types';
+import { saveItemMedia, fetchItemMedia, deleteAllItemMedia, MediaFile } from './utils/mediaUpload';
 import imageCompression from 'browser-image-compression';
 import { GoogleGenAI } from '@google/genai';
 // ... rest of imports
@@ -281,8 +281,8 @@ function MarketplaceApp() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [originalImages, setOriginalImages] = useState<string[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<Array<{file: File, type: 'image' | 'video', preview: string}>>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -607,7 +607,14 @@ function MarketplaceApp() {
   };
 
   const handleAIEnhance = async () => {
-    if (previewImages.length === 0) return;
+    if (mediaFiles.length === 0) return;
+
+    // Check if last media is video
+    const lastMedia = mediaFiles[mediaFiles.length - 1];
+    if (lastMedia.type === 'video') {
+      alert('לא ניתן לבצע על וידאו');
+      return;
+    }
 
     setIsEnhancing(true);
     try {
@@ -618,15 +625,21 @@ function MarketplaceApp() {
       }
       
       const ai = new GoogleGenAI({ apiKey });
-      const lastImage = originalImages[originalImages.length - 1] || previewImages[previewImages.length - 1];
       
-      const match = lastImage.match(/^data:(.*?);base64,(.*)$/);
-      if (!match) {
-        throw new Error(`Invalid image format. Expected data URI, got: ${lastImage.substring(0, 50)}...`);
-      }
+      // Convert File to base64 for AI processing
+      const lastImageFile = lastMedia.file;
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(lastImageFile);
+      });
       
-      const mimeType = match[1];
-      const base64Data = match[2];
+      const mimeType = lastImageFile.type;
 
       const descPromise = ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -752,25 +765,31 @@ function MarketplaceApp() {
               useWebWorker: false,
             });
             
-            await new Promise<void>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setPreviewImages(prev => {
-                  const newImages = [...prev];
-                  newImages[newImages.length - 1] = reader.result as string;
-                  return newImages;
-                });
-                resolve();
+            // Replace last media file with enhanced version
+            const previewUrl = URL.createObjectURL(compressedFile);
+            setMediaFiles(prev => {
+              const newMedia = [...prev];
+              newMedia[newMedia.length - 1] = {
+                file: compressedFile,
+                type: 'image',
+                preview: previewUrl
               };
-              reader.onerror = reject;
-              reader.readAsDataURL(compressedFile);
+              return newMedia;
             });
           } catch (compressionError) {
             console.error("Failed to compress AI image, using original", compressionError);
-            setPreviewImages(prev => {
-              const newImages = [...prev];
-              newImages[newImages.length - 1] = newImageUrl;
-              return newImages;
+            const res = await fetch(newImageUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "enhanced.png", { type: blob.type });
+            const previewUrl = URL.createObjectURL(file);
+            setMediaFiles(prev => {
+              const newMedia = [...prev];
+              newMedia[newMedia.length - 1] = {
+                file: file,
+                type: 'image',
+                preview: previewUrl
+              };
+              return newMedia;
             });
           }
           break;
@@ -892,37 +911,55 @@ function MarketplaceApp() {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (previewImages.length >= 4) {
-      alert("ניתן להעלות עד 4 תמונות.");
-      return;
-    }
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsCompressing(true);
     
     try {
-      const options = {
-        maxSizeMB: 0.1, // Reduced to 100KB to allow multiple images under 1MB total
-        maxWidthOrHeight: 600,
-        useWebWorker: false, // Disabled web worker to prevent hanging in iframes
-      };
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImages(prev => [...prev, reader.result as string]);
-        setOriginalImages(prev => [...prev, reader.result as string]);
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+      
+      if (!isVideo && !isImage) {
+        alert('נא להעלות קובץ תמונה או וידאו בלבד');
         setIsCompressing(false);
-      };
-      reader.onerror = () => {
-        console.error('Error reading compressed image');
+        return;
+      }
+
+      // Check file size limits
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for video, 5MB for image
+      if (file.size > maxSize) {
+        alert(isVideo ? 'גודל הוידאו חורג מ-50MB' : 'גודל התמונה חורג מ-5MB');
         setIsCompressing(false);
-      };
-      reader.readAsDataURL(compressedFile);
-    } catch (error) {
-      console.error('Error compressing image:', error);
+        return;
+      }
+
+      let processedFile = file;
+      
+      // Compress images only
+      if (isImage) {
+        const options = {
+          maxSizeMB: 1, // Allow larger files for storage
+          maxWidthOrHeight: 1920,
+          useWebWorker: false,
+        };
+        processedFile = await imageCompression(file, options);
+      }
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(processedFile);
+      
+      setMediaFiles(prev => [...prev, {
+        file: processedFile,
+        type: isVideo ? 'video' : 'image',
+        preview: previewUrl
+      }]);
+      
       setIsCompressing(false);
-      alert('עיבוד התמונה נכשל. אנא נסה תמונה אחרת.');
+    } catch (error) {
+      console.error('Error processing file:', error);
+      setIsCompressing(false);
+      alert('עיבוד הקובץ נכשל. אנא נסה שוב.');
     }
     
     // Clear input so the same file can be selected again
@@ -939,27 +976,49 @@ function MarketplaceApp() {
       
       if (error) throw error;
       if (data) {
-        // Map snake_case database columns to camelCase
-        const mappedItems = data.map((item: any) => ({
-          id: item.id,
-          sellerId: item.seller_id,
-          sellerName: item.seller_name,
-          sellerPhoto: item.seller_photo,
-          sellerLocation: item.seller_location,
-          title: item.title,
-          description: item.description,
-          price: item.price,
-          condition: item.condition,
-          category: item.category,
-          specifications: item.specifications,
-          photoURL: item.photo_url,
-          photoURLs: item.photo_urls,
-          createdAt: item.created_at,
-          views: item.views,
-          likes: item.likes,
-          status: item.status
+        // Fetch media for all items
+        const itemsWithMedia = await Promise.all(data.map(async (item: any) => {
+          // Fetch media from item_media table
+          const { data: mediaData } = await supabase
+            .from('item_media')
+            .select('*')
+            .eq('item_id', item.id)
+            .order('display_order', { ascending: true });
+          
+          // Use new media if available, fallback to old photo_url/photo_urls
+          let photoURL = item.photo_url;
+          let photoURLs = item.photo_urls;
+          
+          if (mediaData && mediaData.length > 0) {
+            // Use first media as primary photo
+            photoURL = mediaData[0].thumbnail_url || mediaData[0].public_url;
+            // Map all media URLs
+            photoURLs = mediaData.map(m => m.thumbnail_url || m.public_url);
+          }
+          
+          return {
+            id: item.id,
+            sellerId: item.seller_id,
+            sellerName: item.seller_name,
+            sellerPhoto: item.seller_photo,
+            sellerLocation: item.seller_location,
+            title: item.title,
+            description: item.description,
+            price: item.price,
+            condition: item.condition,
+            category: item.category,
+            specifications: item.specifications,
+            photoURL: photoURL,
+            photoURLs: photoURLs,
+            media: mediaData || [],
+            createdAt: item.created_at,
+            views: item.views,
+            likes: item.likes,
+            status: item.status
+          };
         }));
-        setItems(mappedItems as Item[]);
+        
+        setItems(itemsWithMedia as any[]);
       }
     } catch (error) {
       handleDatabaseError(error, OperationType.LIST, 'items');
@@ -1109,13 +1168,16 @@ function MarketplaceApp() {
     };
   }, [currentUser?.id]);
 
-  const handleSaveItem = async (itemData: Partial<Item>) => {
+  const handleSaveItem = async (itemData: Partial<any>) => {
     setIsPublishing(true);
     setPublishError(null);
+    setIsUploadingMedia(true);
+    
     try {
-      // Use current previewImages state for the actual images to save
-      const imagesToSave = previewImages.length > 0 ? previewImages : [itemData.photoURL || ''];
-      
+      if (!currentUser) {
+        throw new Error('אנא התחבר תחילה');
+      }
+
       // Map camelCase to snake_case for database
       const dbData: any = {};
       if (itemData.title) dbData.title = itemData.title;
@@ -1125,12 +1187,17 @@ function MarketplaceApp() {
       if (itemData.category) dbData.category = itemData.category;
       if (itemData.specifications) dbData.specifications = itemData.specifications;
       
-      // Always use the current preview images
-      dbData.photo_url = imagesToSave[0];
-      dbData.photo_urls = imagesToSave;
+      let itemId: string;
       
       if (editingItem) {
-        // Preserve seller information during updates
+        // Update existing item
+        itemId = editingItem.id;
+        
+        // Delete old media if replacing
+        if (mediaFiles.length > 0) {
+          await deleteAllItemMedia(itemId);
+        }
+        
         const updateData = {
           ...dbData,
           seller_id: editingItem.sellerId,
@@ -1142,14 +1209,12 @@ function MarketplaceApp() {
         const { error } = await supabase
           .from('items')
           .update(updateData)
-          .eq('id', editingItem.id);
+          .eq('id', itemId);
         
         if (error) throw error;
       } else {
-        if (!currentUser) {
-          throw new Error('אנא התחבר תחילה');
-        }
-        const itemId = `item_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        // Create new item
+        itemId = `item_${Date.now()}_${Math.random().toString(36).substring(7)}`;
         const newItem = {
           ...dbData,
           id: itemId,
@@ -1170,17 +1235,32 @@ function MarketplaceApp() {
         if (error) throw error;
       }
       
+      // Upload media files to storage
+      if (mediaFiles.length > 0) {
+        const uploadedMedia = await saveItemMedia(itemId, mediaFiles, currentUser.id);
+        
+        // Set primary media (first one)
+        if (uploadedMedia.length > 0) {
+          await supabase
+            .from('items')
+            .update({ primary_media_id: uploadedMedia[0].id })
+            .eq('id', itemId);
+        }
+      }
+      
+      setIsUploadingMedia(false);
+      
       // Refresh items list immediately
       await fetchItems();
       
       // Clear state and navigate back
-      setPreviewImages([]);
-      setOriginalImages([]);
+      setMediaFiles([]);
       setEditingItem(null);
       setView('seller');
     } catch (error) {
-      setPublishError(error instanceof Error ? error.message : 'שמירת הפריט נכשלה. ייתכן שהוא גדול מדי.');
+      setPublishError(error instanceof Error ? error.message : 'שמירת הפריט נכשלה');
       console.error('Save error:', error);
+      setIsUploadingMedia(false);
     } finally {
       setIsPublishing(false);
     }
@@ -1685,10 +1765,11 @@ function MarketplaceApp() {
                 <div key={item.id}>
                   <Card 
                     className="p-3 cursor-pointer active:scale-[0.99] transition-transform relative"
-                    onClick={() => {
+                    onClick={async () => {
                       setEditingItem(item);
-                      setPreviewImages(item.photoURLs || [item.photoURL]);
-                      setOriginalImages(item.photoURLs || [item.photoURL]);
+                      // Load existing media when editing
+                      // TODO: Fetch media from item_media table
+                      setMediaFiles([]);
                       setSelectedCondition(item.condition || 'כמו חדש');
                       setView('add-item');
                     }}
@@ -1764,8 +1845,7 @@ function MarketplaceApp() {
             <button 
               onClick={() => {
                 setEditingItem(null);
-                setPreviewImages([]);
-                setOriginalImages([]);
+                setMediaFiles([]);
                 setSelectedCondition('כמו חדש');
                 setView('add-item');
               }}
@@ -1949,8 +2029,7 @@ function MarketplaceApp() {
               <button 
                 onClick={() => {
                   setEditingItem(null);
-                  setPreviewImages([]);
-                  setOriginalImages([]);
+                  setMediaFiles([]);
                   setView(userMode === 'seller' ? 'seller' : 'buyer');
                 }} 
                 className="p-2 hover:bg-zinc-100 rounded-full"
@@ -2002,10 +2081,14 @@ function MarketplaceApp() {
                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
                       <p className="text-sm text-zinc-500 font-medium">מעבד תמונה...</p>
                     </div>
-                  ) : previewImages.length > 0 ? (
+                  ) : mediaFiles.length > 0 ? (
                     <div className="w-full h-full flex gap-4 overflow-x-auto snap-x snap-mandatory p-2 bg-zinc-100">
-                      {previewImages.map((img, idx) => (
-                        <img key={idx} src={img} alt={`Preview ${idx}`} className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white" />
+                      {mediaFiles.map((media, idx) => (
+                        media.type === 'video' ? (
+                          <video key={idx} src={media.preview} className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white" controls />
+                        ) : (
+                          <img key={idx} src={media.preview} alt={`Preview ${idx}`} className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white" />
+                        )
                       ))}
                     </div>
                   ) : (
@@ -2042,16 +2125,20 @@ function MarketplaceApp() {
                     גלריה
                   </Button>
 
-                  {previewImages.length > 0 && (
+                  {mediaFiles.length > 0 && (
                     <>
                       <Button 
                         variant="outline"
                         className="flex-none px-5 py-2 h-auto text-red-600 border-red-200 hover:bg-red-50"
                         onClick={() => {
-                          setPreviewImages(prev => prev.slice(0, -1));
-                          setOriginalImages(prev => prev.slice(0, -1));
+                          setMediaFiles(prev => {
+                            // Revoke preview URL to free memory
+                            const last = prev[prev.length - 1];
+                            if (last) URL.revokeObjectURL(last.preview);
+                            return prev.slice(0, -1);
+                          });
                         }}
-                        title="מחק תמונה אחרונה"
+                        title="מחק מדיה אחרונה"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -2206,8 +2293,6 @@ function MarketplaceApp() {
                       const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
                       const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
                       
-                      const currentPhotoURLs = previewImages;
-                      
                       if (title && !isNaN(price)) {
                         handleSaveItem({
                           title,
@@ -2215,9 +2300,7 @@ function MarketplaceApp() {
                           category,
                           description,
                           specifications,
-                          condition: selectedCondition,
-                          photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
-                          photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
+                          condition: selectedCondition
                         });
                       } else {
                         setPublishError('אנא הזן כותרת ומחיר תקין.');
@@ -2233,8 +2316,7 @@ function MarketplaceApp() {
                     disabled={isPublishing}
                     onClick={() => {
                       setEditingItem(null);
-                      setPreviewImages([]);
-                      setOriginalImages([]);
+                      setMediaFiles([]);
                       setView(userMode === 'seller' ? 'seller' : 'buyer');
                     }}
                   >
@@ -2255,8 +2337,6 @@ function MarketplaceApp() {
                       const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
                       const specifications = (document.getElementById('item-specs') as HTMLTextAreaElement).value;
                       
-                      const currentPhotoURLs = previewImages;
-                      
                       if (title && !isNaN(price)) {
                         handleSaveItem({
                           title,
@@ -2264,9 +2344,7 @@ function MarketplaceApp() {
                           category,
                           description,
                           specifications,
-                          condition: selectedCondition,
-                          photoURL: currentPhotoURLs[0] || `https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`,
-                          photoURLs: currentPhotoURLs.length > 0 ? currentPhotoURLs : [`https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה`]
+                          condition: selectedCondition
                         });
                       } else {
                         setPublishError('אנא הזן כותרת ומחיר תקין.');
@@ -2281,8 +2359,7 @@ function MarketplaceApp() {
                     size="lg"
                     onClick={() => {
                       setEditingItem(null);
-                      setPreviewImages([]);
-                      setOriginalImages([]);
+                      setMediaFiles([]);
                       setView(userMode === 'seller' ? 'seller' : 'buyer');
                     }}
                   >
