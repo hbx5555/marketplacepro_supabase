@@ -1665,7 +1665,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 23:50
+                Build: 04/04/2026, 00:01
               </p>
 
               <div className="flex gap-4 mb-12">
@@ -1793,6 +1793,21 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                             )} 
                           />
                         </button>
+                        {/* Offer Status Badge */}
+                        {buyerOffers.has(item.id) && (() => {
+                          const offer = buyerOffersDetails.find(o => o.item_id === item.id);
+                          if (offer && offer.status !== 'pending') {
+                            return (
+                              <div className={`absolute top-2 start-2 px-2 py-1 rounded-full text-xs font-bold ${
+                                offer.status === 'accepted' ? 'bg-green-500 text-white' :
+                                'bg-red-500 text-white'
+                              }`}>
+                                {offer.status === 'accepted' ? 'התקבל' : 'נדחה'}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       <div className="p-3 space-y-1">
                         <h3 className="font-bold text-sm leading-tight line-clamp-1">{item.title}</h3>
