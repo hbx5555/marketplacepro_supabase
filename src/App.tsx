@@ -275,11 +275,6 @@ const getApiKey = async () => {
 };
 
 function MarketplaceApp() {
-  // Alert on app mount to verify JS is executing
-  React.useEffect(() => {
-    console.log('=== APP MOUNTED ===');
-    console.log('JavaScript is running!');
-  }, []);
   
   const [view, setView] = useState<'auth' | 'entrance' | 'buyer' | 'seller' | 'add-item' | 'item-details' | 'settings' | 'account-settings' | 'help'>('auth');
   const [items, setItems] = useState<Item[]>([]);
@@ -288,14 +283,6 @@ function MarketplaceApp() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  
-  // Track view changes
-  React.useEffect(() => {
-    console.log('=== VIEW CHANGED ===');
-    console.log('New view:', view);
-    console.log('Is authenticated:', isAuthenticated);
-    console.log('User mode:', userMode);
-  }, [view, isAuthenticated, userMode]);
   const [mediaFiles, setMediaFiles] = useState<Array<{file: File, type: 'image' | 'video', preview: string}>>([]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -1576,7 +1563,7 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:08</p>
+              <p className="text-white/90 text-xl font-medium mb-12">קניה ומכירה לכולם</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
@@ -1630,13 +1617,7 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'buyer' && (() => {
-          console.log('=== BUYER VIEW RENDERING ===');
-          console.log('Current view:', view);
-          console.log('Items count:', items.length);
-          console.log('Is loading:', isLoadingItems);
-          return true;
-        })() && (
+        {view === 'buyer' && (
           <motion.div 
             key="buyer"
             initial={{ x: 300, opacity: 0 }}
@@ -1680,18 +1661,6 @@ function MarketplaceApp() {
                 </div>
               ) : (
                 <>
-                  {(() => {
-                    const filteredItems = items.filter(i => 
-                      i.status === 'active' && 
-                      (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
-                      (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                    );
-                    console.log('=== RENDERING ITEMS ===');
-                    console.log('Total items:', items.length);
-                    console.log('Filtered items:', filteredItems.length);
-                    console.log('First item:', filteredItems[0]);
-                    return null;
-                  })()}
                   {items.filter(i => 
                     i.status === 'active' && 
                     (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
@@ -1701,8 +1670,6 @@ function MarketplaceApp() {
                       key={item.id}
                       className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
                       onClick={() => { 
-                        alert('Item clicked: ' + item.title);
-                        console.log('Clicking item:', item);
                         setSelectedItem(item); 
                         setView('item-details'); 
                       }}
@@ -1713,7 +1680,6 @@ function MarketplaceApp() {
                           className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            alert('Heart clicked - not item');
                           }}
                         >
                           <Heart 
