@@ -2208,7 +2208,7 @@ function MarketplaceApp() {
                   type="file" 
                   ref={cameraInputRef}
                   onChange={handleFileChange} 
-                  accept="image/*" 
+                  accept="image/*,video/*" 
                   capture="environment"
                   className="hidden" 
                 />
@@ -2217,7 +2217,7 @@ function MarketplaceApp() {
                   type="file" 
                   ref={galleryInputRef}
                   onChange={handleFileChange} 
-                  accept="image/*" 
+                  accept="image/*,video/*" 
                   className="hidden" 
                 />
               </div>
