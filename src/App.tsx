@@ -2441,7 +2441,12 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'item-details' && selectedItem && (
+        {view === 'item-details' && selectedItem && (() => {
+          console.log('=== ITEM DETAILS OPENED ===');
+          console.log('selectedItem:', selectedItem);
+          console.log('selectedItem.media:', selectedItem.media);
+          return true;
+        })() && (
           <motion.div 
             key="item-details"
             initial={{ x: 300, opacity: 0 }}
