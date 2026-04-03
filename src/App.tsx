@@ -1205,11 +1205,8 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('Seller offers data:', data);
-      console.log('Current user ID:', currentUser.id);
       if (data) {
         const itemIds = new Set(data.map((offer: any) => offer.item_id));
-        console.log('Seller items with offers:', itemIds);
         setSellerItemsWithOffers(itemIds);
         
         // Fetch item details and buyer info for each offer
@@ -1702,7 +1699,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 04/04/2026, 00:33
+                Build: 04/04/2026, 00:38
               </p>
 
               <div className="flex gap-4 mb-12">
