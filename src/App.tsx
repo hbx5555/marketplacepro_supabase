@@ -914,7 +914,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
       const categoryEl = document.getElementById('item-category') as HTMLSelectElement;
       const currentCategory = categoryEl?.value || '';
 
-      // Define category-to-retailer mapping
+      // Define category-to-retailer mapping (for priority hints)
       const categoryRetailers: Record<string, string[]> = {
         'electronics': ['KSP', 'ALM', 'PaynGo', 'Office Depot', 'BUG'],
         'furniture': ['IKEA Israel', 'Home Center'],
@@ -927,34 +927,34 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
       // Load retailers configuration
       const retailersResponse = await fetch('/retailers.json');
       const retailers = await retailersResponse.json();
+      const enabledRetailers = retailers.filter((r: any) => r.enabled);
       
-      // Filter retailers based on category
-      let enabledRetailers = retailers.filter((r: any) => r.enabled);
+      // Build priority retailer list based on category
+      let priorityRetailerNames: string[] = [];
       if (currentCategory && categoryRetailers[currentCategory]) {
-        const allowedRetailers = categoryRetailers[currentCategory];
-        enabledRetailers = enabledRetailers.filter((r: any) => 
-          allowedRetailers.includes(r.name)
-        );
+        priorityRetailerNames = categoryRetailers[currentCategory];
       }
-      
-      // Build search query with site operators
-      const targetSites = enabledRetailers.map((r: any) => `site:${r.domain}`);
-      const siteQuery = targetSites.join(' OR ');
-      const searchQuery = `"${searchOptimizedText.searchQuery}" (${siteQuery})`;
 
       const ai = new GoogleGenAI({ apiKey });
       
       // Show waiting message (no site cycling)
       setCurrentSearchingSite('המתן...');
 
+      // Build prompt with priority retailers as a suggestion, not restriction
+      let promptText = `Search for this product and extract prices from Israeli retail websites: "${searchOptimizedText.searchQuery}".`;
+      
+      if (priorityRetailerNames.length > 0) {
+        promptText += ` Prioritize checking these retailers: ${priorityRetailerNames.join(', ')}, but also search other relevant Israeli retailers.`;
+      }
+      
+      promptText += ` Return a JSON array with format: [{"site": "site name", "price": number, "currency": "ILS"}]. Only include results with actual prices found.`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: {
           parts: [
             {
-              text: `Search for this product and extract prices from Israeli retail websites: ${searchQuery}. 
-              Return a JSON array with format: [{"site": "site name", "price": number, "currency": "ILS"}].
-              Only include results with actual prices found.`
+              text: promptText
             }
           ],
         },
@@ -1665,7 +1665,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 23:43
+                Build: 03/04/2026, 23:50
               </p>
 
               <div className="flex gap-4 mb-12">
