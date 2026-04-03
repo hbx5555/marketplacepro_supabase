@@ -288,6 +288,14 @@ function MarketplaceApp() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // Track view changes
+  React.useEffect(() => {
+    console.log('=== VIEW CHANGED ===');
+    console.log('New view:', view);
+    console.log('Is authenticated:', isAuthenticated);
+    console.log('User mode:', userMode);
+  }, [view, isAuthenticated, userMode]);
   const [mediaFiles, setMediaFiles] = useState<Array<{file: File, type: 'image' | 'video', preview: string}>>([]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -1568,7 +1576,7 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:04</p>
+              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:08</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
