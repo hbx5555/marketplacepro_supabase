@@ -1000,12 +1000,15 @@ function MarketplaceApp() {
             .order('display_order', { ascending: true });
           
           // Build photoURL and photoURLs from media data
+          // For card thumbnails, use thumbnail_url for videos, public_url for images
           const photoURL = mediaData && mediaData.length > 0 
             ? (mediaData[0].thumbnail_url || mediaData[0].public_url)
             : 'https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה';
           
+          // For photoURLs (used in details view), always use public_url
+          // The details view will check media_type and use thumbnail_url as poster for videos
           const photoURLs = mediaData && mediaData.length > 0
-            ? mediaData.map(m => m.thumbnail_url || m.public_url)
+            ? mediaData.map(m => m.public_url)
             : ['https://placehold.co/800x1000/e4e4e7/a1a1aa?text=אין+תמונה'];
           
           return {
@@ -2465,9 +2468,14 @@ function MarketplaceApp() {
                           key={idx} 
                           src={mediaItem.public_url} 
                           controls 
+                          playsInline
+                          preload="metadata"
                           className="w-full h-full object-cover flex-shrink-0 snap-center"
                           poster={mediaItem.thumbnail_url}
-                        />
+                        >
+                          <source src={mediaItem.public_url} type={mediaItem.mime_type || 'video/mp4'} />
+                          הדפדפן שלך אינו תומך בהפעלת וידאו
+                        </video>
                       ) : (
                         <img 
                           key={idx} 
@@ -2483,9 +2491,14 @@ function MarketplaceApp() {
                     <video 
                       src={selectedItem.media[0].public_url} 
                       controls 
+                      playsInline
+                      preload="metadata"
                       className="w-full h-full object-cover"
                       poster={selectedItem.media[0].thumbnail_url}
-                    />
+                    >
+                      <source src={selectedItem.media[0].public_url} type={selectedItem.media[0].mime_type || 'video/mp4'} />
+                      הדפדפן שלך אינו תומך בהפעלת וידאו
+                    </video>
                   ) : (
                     <img 
                       src={selectedItem.media[0].public_url} 
