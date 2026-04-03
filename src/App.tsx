@@ -279,6 +279,7 @@ function MarketplaceApp() {
   const [view, setView] = useState<'auth' | 'entrance' | 'buyer' | 'seller' | 'add-item' | 'item-details' | 'settings' | 'account-settings' | 'help'>('auth');
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [userMode, setUserMode] = useState<'buyer' | 'seller'>('buyer');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1670,7 +1671,8 @@ function MarketplaceApp() {
                       key={item.id}
                       className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
                       onClick={() => { 
-                        setSelectedItem(item); 
+                        setSelectedItem(item);
+                        setCurrentMediaIndex(0); // Reset to first media item
                         setView('item-details'); 
                       }}
                     >
@@ -2480,40 +2482,55 @@ function MarketplaceApp() {
 
             <main className="flex-1 overflow-y-auto pb-32">
               <div className="relative aspect-[4/5] mx-4 mt-4 rounded-3xl overflow-hidden shadow-md">
-                {(() => {
-                  console.log('selectedItem.media:', selectedItem.media);
-                  if (selectedItem.media && selectedItem.media.length > 0) {
-                    console.log('First media item:', selectedItem.media[0]);
-                    console.log('Media type:', selectedItem.media[0].media_type);
-                    console.log('Public URL:', selectedItem.media[0].public_url);
-                  }
-                  return null;
-                })()}
                 {selectedItem.media && selectedItem.media.length > 1 ? (
-                  <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
-                    {selectedItem.media.map((mediaItem: any, idx: number) => (
-                      mediaItem.media_type === 'video' ? (
-                        <video 
-                          key={idx} 
-                          controls 
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-full object-cover flex-shrink-0 snap-center"
-                          poster={mediaItem.thumbnail_url}
-                        >
-                          <source src={mediaItem.public_url} type={mediaItem.mime_type || 'video/mp4'} />
-                          הדפדפן שלך אינו תומך בהפעלת וידאו
-                        </video>
-                      ) : (
-                        <img 
-                          key={idx} 
-                          src={mediaItem.public_url} 
-                          alt={`${selectedItem.title} - ${idx + 1}`} 
-                          className="w-full h-full object-cover flex-shrink-0 snap-center" 
+                  <>
+                    <div 
+                      className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                      onScroll={(e) => {
+                        const scrollLeft = e.currentTarget.scrollLeft;
+                        const itemWidth = e.currentTarget.offsetWidth;
+                        const index = Math.round(scrollLeft / itemWidth);
+                        setCurrentMediaIndex(index);
+                      }}
+                    >
+                      {selectedItem.media.map((mediaItem: any, idx: number) => (
+                        mediaItem.media_type === 'video' ? (
+                          <video 
+                            key={idx} 
+                            controls 
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-cover flex-shrink-0 snap-center"
+                            poster={mediaItem.thumbnail_url}
+                          >
+                            <source src={mediaItem.public_url} type={mediaItem.mime_type || 'video/mp4'} />
+                            הדפדפן שלך אינו תומך בהפעלת וידאו
+                          </video>
+                        ) : (
+                          <img 
+                            key={idx} 
+                            src={mediaItem.public_url} 
+                            alt={`${selectedItem.title} - ${idx + 1}`} 
+                            className="w-full h-full object-cover flex-shrink-0 snap-center" 
+                          />
+                        )
+                      ))}
+                    </div>
+                    {/* Pagination dots */}
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                      {selectedItem.media.map((_: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "w-2 h-2 rounded-full transition-all",
+                            idx === currentMediaIndex 
+                              ? "bg-white w-6" 
+                              : "bg-white/50"
+                          )}
                         />
-                      )
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 ) : selectedItem.media && selectedItem.media.length === 1 ? (
                   selectedItem.media[0].media_type === 'video' ? (
                     <video 
