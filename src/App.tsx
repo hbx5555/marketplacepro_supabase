@@ -910,10 +910,32 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
         throw new Error("מפתח API לא נמצא או שאינו חוקי. אנא ודא שהמפתח מוגדר בסביבה.");
       }
 
+      // Get current item category
+      const categoryEl = document.getElementById('item-category') as HTMLSelectElement;
+      const currentCategory = categoryEl?.value || '';
+
+      // Define category-to-retailer mapping
+      const categoryRetailers: Record<string, string[]> = {
+        'electronics': ['KSP', 'ALM', 'PaynGo', 'Office Depot', 'BUG'],
+        'furniture': ['IKEA Israel', 'Home Center'],
+        'fashion': ['Castro'],
+        'gaming': ['KSP', 'Office Depot', 'BUG'],
+        'jewelry': ['Yad2'],
+        'housewares': ['Super-Pharm', 'Home Center']
+      };
+
       // Load retailers configuration
       const retailersResponse = await fetch('/retailers.json');
       const retailers = await retailersResponse.json();
-      const enabledRetailers = retailers.filter((r: any) => r.enabled);
+      
+      // Filter retailers based on category
+      let enabledRetailers = retailers.filter((r: any) => r.enabled);
+      if (currentCategory && categoryRetailers[currentCategory]) {
+        const allowedRetailers = categoryRetailers[currentCategory];
+        enabledRetailers = enabledRetailers.filter((r: any) => 
+          allowedRetailers.includes(r.name)
+        );
+      }
       
       // Build search query with site operators
       const targetSites = enabledRetailers.map((r: any) => `site:${r.domain}`);
@@ -1635,7 +1657,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 23:07
+                Build: 03/04/2026, 23:25
               </p>
 
               <div className="flex gap-4 mb-12">
