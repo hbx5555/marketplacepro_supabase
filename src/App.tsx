@@ -317,6 +317,19 @@ function MarketplaceApp() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const mediaSliderRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to last (newest) media when mediaFiles changes
+  useEffect(() => {
+    if (mediaSliderRef.current && mediaFiles.length > 0) {
+      const slider = mediaSliderRef.current;
+      // Scroll to the last item (rightmost in RTL)
+      slider.scrollTo({
+        left: slider.scrollWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [mediaFiles.length]);
 
   // Authentication check on app start
   useEffect(() => {
@@ -1581,7 +1594,7 @@ function MarketplaceApp() {
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 19:11
+                Build: 03/04/2026, 19:20
               </p>
 
               <div className="flex gap-4 mb-12">
@@ -2161,7 +2174,7 @@ function MarketplaceApp() {
                       <p className="text-sm text-zinc-500 font-medium">מעבד תמונה...</p>
                     </div>
                   ) : mediaFiles.length > 0 ? (
-                    <div className="w-full h-full flex gap-4 overflow-x-auto snap-x snap-mandatory p-2 bg-zinc-100">
+                    <div ref={mediaSliderRef} className="w-full h-full flex gap-4 overflow-x-auto snap-x snap-mandatory p-2 bg-zinc-100">
                       {mediaFiles.map((media, idx) => (
                         media.type === 'video' ? (
                           <video 
