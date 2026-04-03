@@ -275,6 +275,12 @@ const getApiKey = async () => {
 };
 
 function MarketplaceApp() {
+  // Alert on app mount to verify JS is executing
+  React.useEffect(() => {
+    console.log('=== APP MOUNTED ===');
+    console.log('JavaScript is running!');
+  }, []);
+  
   const [view, setView] = useState<'auth' | 'entrance' | 'buyer' | 'seller' | 'add-item' | 'item-details' | 'settings' | 'account-settings' | 'help'>('auth');
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -1562,7 +1568,7 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 15:46</p>
+              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 15:55</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
@@ -1677,7 +1683,13 @@ function MarketplaceApp() {
                     >
                       <div className="relative aspect-square">
                         <img src={item.photoURL} alt={item.title} className="w-full h-full object-cover" />
-                        <button className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm">
+                        <button 
+                          className="absolute top-2 end-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert('Heart clicked - not item');
+                          }}
+                        >
                           <Heart 
                             className={cn(
                               "w-4 h-4 text-zinc-900",
