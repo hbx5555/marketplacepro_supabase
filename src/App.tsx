@@ -1568,7 +1568,7 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:00</p>
+              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:04</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
@@ -1622,7 +1622,13 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'buyer' && (
+        {view === 'buyer' && (() => {
+          console.log('=== BUYER VIEW RENDERING ===');
+          console.log('Current view:', view);
+          console.log('Items count:', items.length);
+          console.log('Is loading:', isLoadingItems);
+          return true;
+        })() && (
           <motion.div 
             key="buyer"
             initial={{ x: 300, opacity: 0 }}
