@@ -1668,7 +1668,12 @@ function MarketplaceApp() {
                     <Card 
                       key={item.id}
                       className="cursor-pointer active:scale-[0.99] transition-transform overflow-hidden self-start"
-                      onClick={() => { setSelectedItem(item); setView('item-details'); }}
+                      onClick={() => { 
+                        alert('Item clicked: ' + item.title);
+                        console.log('Clicking item:', item);
+                        setSelectedItem(item); 
+                        setView('item-details'); 
+                      }}
                     >
                       <div className="relative aspect-square">
                         <img src={item.photoURL} alt={item.title} className="w-full h-full object-cover" />
