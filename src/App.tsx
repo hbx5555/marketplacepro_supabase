@@ -1564,7 +1564,15 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">קניה ומכירה לכולם</p>
+              <p className="text-white/70 text-sm font-medium mb-12">
+                {new Date().toLocaleString('he-IL', { 
+                  year: 'numeric', 
+                  month: '2-digit', 
+                  day: '2-digit', 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
