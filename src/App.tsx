@@ -704,6 +704,34 @@ function MarketplaceApp() {
         return null;
       });
 
+      const categoryPromise = ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType,
+              },
+            },
+            {
+              text: `Analyze this image and determine which category it belongs to. Choose ONLY ONE from these options:
+- electronics (אלקטרוניקה) - for electronic devices, computers, phones, cameras, etc.
+- furniture (ריהוט) - for furniture items like chairs, tables, beds, etc.
+- fashion (אופנה) - for clothing, shoes, bags, accessories
+- gaming (גיימינג) - for gaming consoles, games, gaming accessories
+- jewelry (תכשיטים) - for jewelry, watches, precious items
+- housewares (כלי בית) - for kitchen items, dishes, home accessories
+
+Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewelry, or housewares). No explanations.`,
+            },
+          ],
+        },
+      }).catch(err => {
+        console.error("Category generation failed:", err);
+        return null;
+      });
+
       const searchTextPromise = ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: {
@@ -767,6 +795,19 @@ function MarketplaceApp() {
           setSearchOptimizedText(searchData);
         } catch (err) {
           console.error("Failed to parse search text JSON:", err);
+        }
+      }
+
+      const categoryResponse = await categoryPromise;
+      if (categoryResponse && categoryResponse.text) {
+        const detectedCategory = categoryResponse.text.trim().toLowerCase();
+        // Validate that it's one of our valid categories
+        const validCategories = ['electronics', 'furniture', 'fashion', 'gaming', 'jewelry', 'housewares'];
+        if (validCategories.includes(detectedCategory)) {
+          const categoryEl = document.getElementById('item-category') as HTMLSelectElement;
+          if (categoryEl) {
+            categoryEl.value = detectedCategory;
+          }
         }
       }
 
@@ -1594,7 +1635,7 @@ function MarketplaceApp() {
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 19:20
+                Build: 03/04/2026, 23:07
               </p>
 
               <div className="flex gap-4 mb-12">
