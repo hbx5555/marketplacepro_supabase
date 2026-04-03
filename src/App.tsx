@@ -2457,14 +2457,42 @@ function MarketplaceApp() {
 
             <main className="flex-1 overflow-y-auto pb-32">
               <div className="relative aspect-[4/5] mx-4 mt-4 rounded-3xl overflow-hidden shadow-md">
-                {selectedItem.photoURLs && selectedItem.photoURLs.length > 1 ? (
+                {selectedItem.media && selectedItem.media.length > 1 ? (
                   <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
-                    {selectedItem.photoURLs.map((img, idx) => (
-                      <img key={idx} src={img} alt={`${selectedItem.title} - ${idx + 1}`} className="w-full h-full object-cover flex-shrink-0 snap-center" />
+                    {selectedItem.media.map((mediaItem: any, idx: number) => (
+                      mediaItem.media_type === 'video' ? (
+                        <video 
+                          key={idx} 
+                          src={mediaItem.public_url} 
+                          controls 
+                          className="w-full h-full object-cover flex-shrink-0 snap-center"
+                          poster={mediaItem.thumbnail_url}
+                        />
+                      ) : (
+                        <img 
+                          key={idx} 
+                          src={mediaItem.public_url} 
+                          alt={`${selectedItem.title} - ${idx + 1}`} 
+                          className="w-full h-full object-cover flex-shrink-0 snap-center" 
+                        />
+                      )
                     ))}
                   </div>
-                ) : selectedItem.photoURL ? (
-                  <img src={selectedItem.photoURL} alt={selectedItem.title} className="w-full h-full object-cover" />
+                ) : selectedItem.media && selectedItem.media.length === 1 ? (
+                  selectedItem.media[0].media_type === 'video' ? (
+                    <video 
+                      src={selectedItem.media[0].public_url} 
+                      controls 
+                      className="w-full h-full object-cover"
+                      poster={selectedItem.media[0].thumbnail_url}
+                    />
+                  ) : (
+                    <img 
+                      src={selectedItem.media[0].public_url} 
+                      alt={selectedItem.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                  )
                 ) : (
                   <div className="w-full h-full bg-zinc-200 flex items-center justify-center">
                     <p className="text-zinc-400 text-sm">אין תמונה</p>
