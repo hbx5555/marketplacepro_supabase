@@ -1855,7 +1855,8 @@ function MarketplaceApp() {
                         const mediaFiles = item.media.map((m: any) => ({
                           file: null as any, // No file object for existing media
                           type: m.media_type as 'image' | 'video',
-                          preview: m.thumbnail_url || m.public_url,
+                          preview: m.public_url, // Always use public_url for preview
+                          thumbnail: m.thumbnail_url, // Store thumbnail separately for video poster
                           existingId: m.id // Track existing media ID
                         }));
                         setMediaFiles(mediaFiles);
@@ -2177,7 +2178,17 @@ function MarketplaceApp() {
                     <div className="w-full h-full flex gap-4 overflow-x-auto snap-x snap-mandatory p-2 bg-zinc-100">
                       {mediaFiles.map((media, idx) => (
                         media.type === 'video' ? (
-                          <video key={idx} src={media.preview} className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white" controls />
+                          <video 
+                            key={idx} 
+                            controls 
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white"
+                            poster={(media as any).thumbnail}
+                          >
+                            <source src={media.preview} type="video/mp4" />
+                            הדפדפן שלך אינו תומך בהפעלת וידאו
+                          </video>
                         ) : (
                           <img key={idx} src={media.preview} alt={`Preview ${idx}`} className="w-full h-full object-contain rounded-xl flex-shrink-0 snap-center shadow-sm bg-white" />
                         )
