@@ -1568,7 +1568,7 @@ function MarketplaceApp() {
                 <img src="/new_icon.png" alt="מרקטפלייס" className="w-40 h-40 rounded-3xl" />
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
-              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 15:55</p>
+              <p className="text-white/90 text-xl font-medium mb-12">Deploy: 2026-04-03 16:00</p>
 
               <div className="flex gap-4 mb-12">
                 <div className="flex items-center gap-2">
@@ -1666,6 +1666,18 @@ function MarketplaceApp() {
                 </div>
               ) : (
                 <>
+                  {(() => {
+                    const filteredItems = items.filter(i => 
+                      i.status === 'active' && 
+                      (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
+                      (!searchTerm || i.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+                    console.log('=== RENDERING ITEMS ===');
+                    console.log('Total items:', items.length);
+                    console.log('Filtered items:', filteredItems.length);
+                    console.log('First item:', filteredItems[0]);
+                    return null;
+                  })()}
                   {items.filter(i => 
                     i.status === 'active' && 
                     (!selectedCategoryFilter || i.category === selectedCategoryFilter) &&
