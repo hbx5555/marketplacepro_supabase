@@ -2460,13 +2460,21 @@ function MarketplaceApp() {
 
             <main className="flex-1 overflow-y-auto pb-32">
               <div className="relative aspect-[4/5] mx-4 mt-4 rounded-3xl overflow-hidden shadow-md">
+                {(() => {
+                  console.log('selectedItem.media:', selectedItem.media);
+                  if (selectedItem.media && selectedItem.media.length > 0) {
+                    console.log('First media item:', selectedItem.media[0]);
+                    console.log('Media type:', selectedItem.media[0].media_type);
+                    console.log('Public URL:', selectedItem.media[0].public_url);
+                  }
+                  return null;
+                })()}
                 {selectedItem.media && selectedItem.media.length > 1 ? (
                   <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
                     {selectedItem.media.map((mediaItem: any, idx: number) => (
                       mediaItem.media_type === 'video' ? (
                         <video 
                           key={idx} 
-                          src={mediaItem.public_url} 
                           controls 
                           playsInline
                           preload="metadata"
@@ -2489,7 +2497,6 @@ function MarketplaceApp() {
                 ) : selectedItem.media && selectedItem.media.length === 1 ? (
                   selectedItem.media[0].media_type === 'video' ? (
                     <video 
-                      src={selectedItem.media[0].public_url} 
                       controls 
                       playsInline
                       preload="metadata"
