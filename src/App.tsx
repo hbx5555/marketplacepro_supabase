@@ -1154,13 +1154,30 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               .eq('id', offer.item_id)
               .single();
             
+            // Fetch primary media for the item
+            let photoURL = null;
+            let photoURLs = [];
+            if (itemData?.primary_media_id) {
+              const { data: mediaData } = await supabase
+                .from('item_media')
+                .select('public_url, thumbnail_url, media_type')
+                .eq('id', itemData.primary_media_id)
+                .single();
+              
+              if (mediaData) {
+                // Use thumbnail for videos, public_url for images
+                photoURL = mediaData.media_type === 'video' ? mediaData.thumbnail_url : mediaData.public_url;
+                photoURLs = [photoURL];
+              }
+            }
+            
             return {
               ...offer,
               item: itemData ? {
                 id: itemData.id,
                 title: itemData.title,
-                photoURL: itemData.photo_url,
-                photoURLs: itemData.photo_urls,
+                photoURL: photoURL,
+                photoURLs: photoURLs,
                 price: itemData.price
               } : null
             };
@@ -1204,6 +1221,23 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               .eq('id', offer.item_id)
               .single();
             
+            // Fetch primary media for the item
+            let photoURL = null;
+            let photoURLs = [];
+            if (itemData?.primary_media_id) {
+              const { data: mediaData } = await supabase
+                .from('item_media')
+                .select('public_url, thumbnail_url, media_type')
+                .eq('id', itemData.primary_media_id)
+                .single();
+              
+              if (mediaData) {
+                // Use thumbnail for videos, public_url for images
+                photoURL = mediaData.media_type === 'video' ? mediaData.thumbnail_url : mediaData.public_url;
+                photoURLs = [photoURL];
+              }
+            }
+            
             const { data: buyerData } = await supabase
               .from('users')
               .select('name, photo_url')
@@ -1215,8 +1249,8 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               item: itemData ? {
                 id: itemData.id,
                 title: itemData.title,
-                photoURL: itemData.photo_url,
-                photoURLs: itemData.photo_urls,
+                photoURL: photoURL,
+                photoURLs: photoURLs,
                 price: itemData.price
               } : null,
               buyer: buyerData ? {
@@ -1668,7 +1702,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 04/04/2026, 00:12
+                Build: 04/04/2026, 00:33
               </p>
 
               <div className="flex gap-4 mb-12">
