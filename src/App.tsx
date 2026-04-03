@@ -1018,12 +1018,14 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
         return;
       }
 
-      // Check file size limits
-      const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for video, 5MB for image
-      if (file.size > maxSize) {
-        alert(isVideo ? 'גודל הוידאו חורג מ-50MB' : 'גודל התמונה חורג מ-5MB');
-        setIsCompressing(false);
-        return;
+      // Check file size limits for videos only (images will be compressed)
+      if (isVideo) {
+        const maxVideoSize = 50 * 1024 * 1024; // 50MB for video
+        if (file.size > maxVideoSize) {
+          alert('גודל הוידאו חורג מ-50MB');
+          setIsCompressing(false);
+          return;
+        }
       }
 
       let processedFile = file;
@@ -1031,7 +1033,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
       // Compress images only
       if (isImage) {
         const options = {
-          maxSizeMB: 1, // Allow larger files for storage
+          maxSizeMB: 1, // Compress to max 1MB
           maxWidthOrHeight: 1920,
           useWebWorker: false,
         };
@@ -1657,7 +1659,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 23:25
+                Build: 03/04/2026, 23:38
               </p>
 
               <div className="flex gap-4 mb-12">
