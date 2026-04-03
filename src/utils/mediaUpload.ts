@@ -320,7 +320,7 @@ export async function saveItemMedia(
       }
     } catch (error) {
       console.error(`Failed to upload media ${i}:`, error);
-      // Continue with other uploads
+      throw error; // Throw error instead of silently continuing
     }
   }
 
