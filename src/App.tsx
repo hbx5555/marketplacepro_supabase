@@ -2461,17 +2461,7 @@ function MarketplaceApp() {
           </motion.div>
         )}
 
-        {view === 'item-details' && selectedItem && (() => {
-          alert('DETAILS OPENED - Check console now');
-          console.log('=== ITEM DETAILS OPENED ===');
-          console.log('selectedItem:', selectedItem);
-          console.log('selectedItem.media:', selectedItem.media);
-          if (selectedItem.media && selectedItem.media.length > 0) {
-            console.log('Media[0] type:', selectedItem.media[0].media_type);
-            console.log('Media[0] public_url:', selectedItem.media[0].public_url);
-          }
-          return true;
-        })() && (
+        {view === 'item-details' && selectedItem && (
           <motion.div 
             key="item-details"
             initial={{ x: 300, opacity: 0 }}
