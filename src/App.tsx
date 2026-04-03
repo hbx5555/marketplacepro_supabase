@@ -1276,11 +1276,27 @@ function MarketplaceApp() {
       if (newMediaFiles.length > 0) {
         const uploadedMedia = await saveItemMedia(itemId, newMediaFiles, currentUser.id);
         
-        // Set primary media ID
+        // Set primary media ID if we uploaded new media
         if (uploadedMedia.length > 0) {
           await supabase
             .from('items')
             .update({ primary_media_id: uploadedMedia[0].id })
+            .eq('id', itemId);
+        }
+      } else if (editingItem) {
+        // When editing without new uploads, ensure primary_media_id is valid
+        const { data: remainingMedia } = await supabase
+          .from('item_media')
+          .select('id')
+          .eq('item_id', itemId)
+          .order('display_order', { ascending: true })
+          .limit(1);
+        
+        if (remainingMedia && remainingMedia.length > 0) {
+          // Set first remaining media as primary
+          await supabase
+            .from('items')
+            .update({ primary_media_id: remainingMedia[0].id })
             .eq('id', itemId);
         }
       }

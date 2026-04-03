@@ -361,16 +361,22 @@ export async function fetchItemMedia(itemId: string): Promise<UploadedMedia[]> {
  * Delete media from storage and database
  */
 export async function deleteItemMedia(mediaId: string): Promise<void> {
-  // Get media record to find storage path
+  // Get media record to find storage path and item_id
   const { data: media, error: fetchError } = await supabase
     .from('item_media')
-    .select('storage_path, thumbnail_url')
+    .select('storage_path, thumbnail_url, item_id')
     .eq('id', mediaId)
     .single();
 
   if (fetchError || !media) {
     throw new Error('Media not found');
   }
+
+  // Clear primary_media_id if this media is the primary one
+  await supabase
+    .from('items')
+    .update({ primary_media_id: null })
+    .eq('primary_media_id', mediaId);
 
   // Delete from storage
   const pathsToDelete = [media.storage_path];
