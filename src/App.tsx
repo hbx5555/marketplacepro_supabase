@@ -179,6 +179,7 @@ import {
   ChevronDown,
   Share2,
   Image,
+  Video,
   Trash2,
   Sparkles,
   Loader2,
@@ -312,6 +313,7 @@ function MarketplaceApp() {
   const [selfOfferErrorModal, setSelfOfferErrorModal] = useState(false);
   const [offerActionModal, setOfferActionModal] = useState<{open: boolean, offer: any} | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Authentication check on app start
@@ -2154,7 +2156,19 @@ function MarketplaceApp() {
                     }}
                   >
                     <Camera className="w-4 h-4" />
-                    צלם
+                    תמונה
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="flex-1 text-xs px-2 py-2 h-auto gap-1"
+                    onClick={() => {
+                      if (videoInputRef.current) {
+                        videoInputRef.current.click();
+                      }
+                    }}
+                  >
+                    <Video className="w-4 h-4" />
+                    וידאו
                   </Button>
                   <Button 
                     variant="outline"
@@ -2208,7 +2222,16 @@ function MarketplaceApp() {
                   type="file" 
                   ref={cameraInputRef}
                   onChange={handleFileChange} 
-                  accept="image/*,video/*" 
+                  accept="image/*" 
+                  capture="environment"
+                  className="hidden" 
+                />
+                <input 
+                  id="video-input"
+                  type="file" 
+                  ref={videoInputRef}
+                  onChange={handleFileChange} 
+                  accept="video/*" 
                   capture="environment"
                   className="hidden" 
                 />
