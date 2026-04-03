@@ -1413,6 +1413,12 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
       // Refresh items list immediately
       await fetchItems();
       setOpenMenuId(null);
+      
+      // If we're in add-item view (editing), navigate back to seller view
+      if (view === 'add-item') {
+        setEditingItem(null);
+        setView('seller');
+      }
     } catch (error) {
       handleDatabaseError(error, OperationType.DELETE, 'items');
     }
@@ -1659,7 +1665,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 03/04/2026, 23:38
+                Build: 03/04/2026, 23:43
               </p>
 
               <div className="flex gap-4 mb-12">
