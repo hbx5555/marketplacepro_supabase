@@ -1298,6 +1298,10 @@ function MarketplaceApp() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
+      // Delete all media files from storage and database first
+      await deleteAllItemMedia(itemId);
+      
+      // Then delete the item
       const { error } = await supabase
         .from('items')
         .delete()
