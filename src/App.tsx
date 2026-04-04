@@ -1485,13 +1485,12 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
       
       if (itemError) throw itemError;
       
-      // Delete any existing pending offers from this buyer for this item
+      // Delete any existing offers from this buyer for this item (regardless of status)
       const { error: deleteError } = await supabase
         .from('offers')
         .delete()
         .eq('item_id', itemId)
-        .eq('buyer_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('buyer_id', currentUser.id);
       
       if (deleteError) throw deleteError;
       
@@ -1699,7 +1698,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </div>
               <h1 className="text-white text-5xl font-extrabold tracking-tight mb-2">מרקטפלייס</h1>
               <p className="text-white/70 text-sm font-medium mb-12">
-                Build: 04/04/2026, 00:38
+                Build: 04/04/2026, 12:33
               </p>
 
               <div className="flex gap-4 mb-12">

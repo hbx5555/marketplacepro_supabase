@@ -38,5 +38,14 @@
     "name": "Home Center",
     "domain": "homecenter.co.il",
     "enabled": true
+  },
+  {"name": "Castro",
+    "domain": "www.castro.com/",
+    "enabled": true
+  },
+  {"name": "BUG",
+    "domain": "www.bug.co.il//",
+    "enabled": true
   }
+
 ]
