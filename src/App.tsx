@@ -305,6 +305,7 @@ function MarketplaceApp() {
   const [buyerOffersDetails, setBuyerOffersDetails] = useState<Array<any>>([]);
   const [sellerOffersDetails, setSellerOffersDetails] = useState<Array<any>>([]);
   const [offersListMode, setOffersListMode] = useState<'buyer' | 'seller'>('buyer');
+  const [filteredOffersItemId, setFilteredOffersItemId] = useState<string | null>(null);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [searchingPrice, setSearchingPrice] = useState(false);
   const [priceSearchResults, setPriceSearchResults] = useState<Array<{site: string, price: number, currency: string}>>([]);
@@ -1992,7 +1993,17 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                           <h4 className="font-bold text-sm truncate">{item.title}</h4>
                           <div className="flex items-center gap-1">
                             {sellerItemsWithOffers.has(item.id) && (
-                              <Heart className="w-4 h-4 fill-current text-zinc-900 flex-shrink-0" />
+                              <button
+                                className="p-1 hover:bg-zinc-100 rounded-full transition-colors me-[30px]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFilteredOffersItemId(item.id);
+                                  setOffersListMode('seller');
+                                  setView('offers-list');
+                                }}
+                              >
+                                <Heart className="w-4 h-4 fill-current text-zinc-900 flex-shrink-0" />
+                              </button>
                             )}
                             <div className="relative">
                               <button 
@@ -2083,6 +2094,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               </button>
               <button 
                 onClick={() => {
+                  setFilteredOffersItemId(null);
                   setOffersListMode('seller');
                   setView('offers-list');
                 }}
@@ -2122,14 +2134,20 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-              {(offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-                  <Heart className="w-12 h-12 mb-4 opacity-20" />
-                  <p className="font-medium">אין הצעות פעילות</p>
-                  <p className="text-sm mt-2">{offersListMode === 'buyer' ? 'ההצעות שתשלח יופיעו כאן' : 'הצעות שתקבל יופיעו כאן'}</p>
-                </div>
-              ) : (
-                (offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails).map((offer) => (
+              {(() => {
+                const allOffers = offersListMode === 'buyer' ? buyerOffersDetails : sellerOffersDetails;
+                const filteredOffers = filteredOffersItemId 
+                  ? allOffers.filter(offer => offer.item_id === filteredOffersItemId)
+                  : allOffers;
+                
+                return filteredOffers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                    <Heart className="w-12 h-12 mb-4 opacity-20" />
+                    <p className="font-medium">אין הצעות פעילות</p>
+                    <p className="text-sm mt-2">{filteredOffersItemId ? 'אין הצעות לפריט זה' : (offersListMode === 'buyer' ? 'ההצעות שתשלח יופיעו כאן' : 'הצעות שתקבל יופיעו כאן')}</p>
+                  </div>
+                ) : (
+                  filteredOffers.map((offer) => (
                   <Card 
                     key={offer.id} 
                     className={`p-3 ${offersListMode === 'seller' && offer.status === 'pending' ? 'cursor-pointer hover:bg-zinc-50 active:bg-zinc-100' : ''}`}
@@ -2193,7 +2211,8 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                     </div>
                   </Card>
                 ))
-              )}
+                );
+              })()}
             </main>
 
             {/* Bottom Navigation */}
