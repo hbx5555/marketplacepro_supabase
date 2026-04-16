@@ -2760,9 +2760,16 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                     className="bg-success/20 text-amber-700 rounded-full"
                     onClick={() => {
                       if (selectedItem.sellerPhone) {
-                        // Format phone number for WhatsApp (remove spaces, dashes, parentheses)
-                        const cleanPhone = selectedItem.sellerPhone.replace(/[\s\-\(\)]/g, '');
-                        window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                        // Format phone number for WhatsApp:
+                        // 1. Remove all spaces, dashes, parentheses
+                        let cleanPhone = selectedItem.sellerPhone.replace(/[\s\-\(\)]/g, '');
+                        // 2. Remove leading 0 if present (054 -> 54)
+                        if (cleanPhone.startsWith('0')) {
+                          cleanPhone = cleanPhone.substring(1);
+                        }
+                        // 3. Add Israel country code 972
+                        const whatsappPhone = `972${cleanPhone}`;
+                        window.open(`https://wa.me/${whatsappPhone}`, '_blank');
                       }
                     }}
                   >
