@@ -2206,9 +2206,9 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                       </div>
 
                       {/* WhatsApp & Status Badge */}
-                      <div className="flex-shrink-0 flex flex-col items-center gap-2">
-                        {/* WhatsApp Button - Only for seller mode */}
-                        {offersListMode === 'seller' && offer.buyer?.phone && (
+                      <div className="flex-shrink-0 flex flex-col items-center justify-between h-20">
+                        {/* WhatsApp Button - Only for seller mode - Aligns with title */}
+                        {offersListMode === 'seller' && offer.buyer?.phone ? (
                           <button
                             className="p-2 bg-success/20 text-amber-700 rounded-full hover:bg-success/30 transition-colors"
                             onClick={(e) => {
@@ -2224,9 +2224,11 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button>
+                        ) : (
+                          <div className="h-10"></div>
                         )}
                         
-                        {/* Status Badge */}
+                        {/* Status Badge - Aligns with bottom */}
                         <div className={`text-xs font-bold px-2 py-1 rounded-full ${
                           offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
                           offer.status === 'rejected' ? 'bg-red-100 text-red-700' :
