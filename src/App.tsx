@@ -1246,7 +1246,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
             
             const { data: buyerData } = await supabase
               .from('users')
-              .select('name, photo_url')
+              .select('name, photo_url, phone_number')
               .eq('id', offer.buyer_id)
               .single();
             
@@ -1261,7 +1261,8 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
               } : null,
               buyer: buyerData ? {
                 name: buyerData.name,
-                photoURL: buyerData.photo_url
+                photoURL: buyerData.photo_url,
+                phone: buyerData.phone_number
               } : null
             };
           })
@@ -2204,8 +2205,28 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                         </div>
                       </div>
 
-                      {/* Status Badge */}
-                      <div className="flex-shrink-0">
+                      {/* WhatsApp & Status Badge */}
+                      <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                        {/* WhatsApp Button - Only for seller mode */}
+                        {offersListMode === 'seller' && offer.buyer?.phone && (
+                          <button
+                            className="p-2 bg-success/20 text-amber-700 rounded-full hover:bg-success/30 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Format phone number for WhatsApp
+                              let cleanPhone = offer.buyer.phone.replace(/[\s\-\(\)]/g, '');
+                              if (cleanPhone.startsWith('0')) {
+                                cleanPhone = cleanPhone.substring(1);
+                              }
+                              const whatsappPhone = `972${cleanPhone}`;
+                              window.open(`https://wa.me/${whatsappPhone}`, '_blank');
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        {/* Status Badge */}
                         <div className={`text-xs font-bold px-2 py-1 rounded-full ${
                           offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
                           offer.status === 'rejected' ? 'bg-red-100 text-red-700' :
