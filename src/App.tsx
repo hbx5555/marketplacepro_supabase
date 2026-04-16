@@ -1080,6 +1080,13 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
             .eq('item_id', item.id)
             .order('display_order', { ascending: true });
           
+          // Fetch seller phone number from users table
+          const { data: sellerData } = await supabase
+            .from('users')
+            .select('phone_number')
+            .eq('id', item.seller_id)
+            .single();
+          
           // Build photoURL and photoURLs from media data
           // For card thumbnails, use thumbnail_url for videos, public_url for images
           const photoURL = mediaData && mediaData.length > 0 
@@ -1098,6 +1105,7 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
             sellerName: item.seller_name,
             sellerPhoto: item.seller_photo,
             sellerLocation: item.seller_location,
+            sellerPhone: sellerData?.phone_number,
             title: item.title,
             description: item.description,
             price: item.price,
@@ -2746,7 +2754,18 @@ Respond with ONLY the category ID (electronics, furniture, fashion, gaming, jewe
                       <Star className="w-3 h-3 text-amber-400 fill-amber-400" /> 4.8 (127)
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="bg-success/20 text-amber-700 rounded-full">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="bg-success/20 text-amber-700 rounded-full"
+                    onClick={() => {
+                      if (selectedItem.sellerPhone) {
+                        // Format phone number for WhatsApp (remove spaces, dashes, parentheses)
+                        const cleanPhone = selectedItem.sellerPhone.replace(/[\s\-\(\)]/g, '');
+                        window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                      }
+                    }}
+                  >
                     <MessageCircle className="w-4 h-4" /> הודעה
                   </Button>
                 </div>

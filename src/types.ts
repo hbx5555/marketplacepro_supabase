@@ -19,6 +19,7 @@ export interface Item {
   sellerName?: string;
   sellerPhoto?: string;
   sellerLocation?: string;
+  sellerPhone?: string;
   title: string;
   description: string;
   price: number;
